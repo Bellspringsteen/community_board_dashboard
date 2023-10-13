@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voting Results</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        .left-section {
+            flex: 1;
+            padding-right: 20px;
+        }
+
+        .right-section {
+            flex: 1;
+            padding-left: 20px;
+            text-align: center;
+        }
+
+        .banner {
+            background-color: #0073e6;
+            color: #fff;
+            padding: 10px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 24px;
+            text-align: center;
+            color: #333;
+        }
+
+        .results {
+            margin: 20px 0;
+        }
+
+        .log {
+            margin: 20px 0;
+        }
+
+        .timer {
+            margin: 20px 0;
+            border: 2px solid #0073e6; /* Add a border with a color of your choice */
+            padding: 20px;
+            text-align: center;
+        }
+
+        .queue {
+            margin: 20px 0;
+            border: 2px solid #0073e6;
+            padding: 20px;
+            text-align: center;
+        }
+
+        #timerDisplay {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        #timerButtons {
+            margin-top: 10px;
+        }
+
+        #setTimeInput {
+            width: 100px; /* Wider input to accommodate the new format */
+            font-size: 16px;
+        }
+
+        #queueDescription {
+            font-weight: bold;
+        }
+
+        #queueText {
+            font-style: italic;
+        }
+
+        .voting-controls {
+            margin-top: 20px;
+        }
+
+        .voting-title-input {
+            width: 200px;
+            font-size: 16px;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        li {
+            margin: 5px 0;
+        }
+
+        #timerDisplay {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        #timerButtons {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="banner">
+        <h1>Welcome to CB7 text voting.</h1>
+        <p>To begin voting, text 'instructions' to 855-643-6695</p>
+    </div>
+    <div class="container">
+        <div class="left-section">
+            <div id="results" class="results">
+                <h1>Results of Vote</h1>
+                <h2>Vote Summary</h2>
+                <ul>
+                    <li>Yes: <span id="yesCount">0</span></li>
+                    <li>No: <span id="noCount">0</span></li>
+                    <li>Abstain: <span id="abstainCount">0</span></li>
+                    <li>Abstaining for Cause: <span id="causeCount">0</span></li>
+                </ul>
+            </div>
+            <div class="log">
+                <h2>Log of Votes</h2>
+                <ul id="voteLog">
+                    <!-- Vote log will be populated using JavaScript -->
+                </ul>
+            </div>
+        </div>
+        <div class="right-section">
+            <div class="timer">
+                <h2>Speaker Timer</h2>
+                <input type="text" id="setTimeInput" placeholder="2:00">
+                <button onclick="setTimer()">Set Time</button>
+                <div id="timerDisplay">2:00</div>
+                <div id="timerButtons">
+                    <button id="startButton" onclick="startTimer()">Start</button>
+                    <button id="resetButton" onclick="resetTimer()">Reset</button>
+                </div>
+            </div>
+            <div class="queue">
+                <h2 id="queueDescription">Board Members Queue to Speak</h2>
+                <div id="queueText">Coming Soon</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container voting-controls" id="votingControls" style="display: none;">
+        <input type="text" id="votingTitleInput" class="voting-title-input" placeholder="Title of Vote">
+        <button onclick="startVoting()">Start Voting</button>
+        <button id="stopButton" onclick="stopVoting()" style="display: none;">Stop Voting</button>
+    </div>
+
+    <script>
+        let timer;
+        let totalSeconds = 120; // 2 minutes by default
+        let votingStarted = false
+
+        function updateTimerDisplay() {
+            const displayMinutes = Math.floor(totalSeconds / 60);
+            const displaySeconds = totalSeconds % 60;
+            document.getElementById("timerDisplay").textContent = `${displayMinutes.toString().padStart(2, '0')}:${displaySeconds.toString().padStart(2, '0')}`;
+        }
+
+        function setTimer() {
+            const setTimeInput = document.getElementById("setTimeInput").value;
+            const [minutes, seconds] = setTimeInput.split(':').map(part => parseInt(part, 10));
+            if (!isNaN(minutes) && !isNaN(seconds) && minutes >= 0 && seconds >= 0) {
+                totalSeconds = minutes * 60 + seconds;
+                updateTimerDisplay();
+            }
+        }
+
+        function startTimer() {
+            if (!timer) {
+                timer = setInterval(() => {
+                    if (totalSeconds === 0) {
+                        clearInterval(timer);
+                        timer = null;
+                        return;
+                    }
+                    totalSeconds--;
+                    updateTimerDisplay();
+                }, 1000);
+                // Disable input and "Set Time" button after starting the timer
+                document.getElementById("setTimeInput").disabled = true;
+                document.getElementById("startButton").disabled = true;
+            }
+        }
+
+        function resetTimer() {
+            clearInterval(timer);
+            timer = null;
+            totalSeconds = 120; // Reset to 2 minutes
+            updateTimerDisplay();
+            // Enable input and "Set Time" button after resetting the timer
+            document.getElementById("setTimeInput").disabled = false;
+            document.getElementById("startButton").disabled = false;
+        }
+
+        function updateResults(data) {
+            const yesCount = data["Yes"].length;
+            const noCount = data["No"].length;
+            const abstainCount = data["Abstain"].length;
+            const causeCount = data["Abstaining for Cause"].length;
+
+            document.getElementById("yesCount").textContent = yesCount;
+            document.getElementById("noCount").textContent = noCount;
+            document.getElementById("abstainCount").textContent = abstainCount;
+            document.getElementById("causeCount").textContent = causeCount;
+
+            const voteLog = document.getElementById("voteLog");
+            voteLog.innerHTML = '';
+            for (const vote_selected of ["Yes","No","Abstain","Abstaining for Cause"]){
+                for (const vote of data[vote_selected]) {
+                    const li = document.createElement("li");
+                    li.textContent = `${vote.voter} voted `+ vote_selected;
+                    voteLog.appendChild(li);
+                }
+            }
+
+        }
+
+        function fetchResults() {
+            fetch("http://127.0.0.1:5000/results")
+                .then(response => response.json())
+                .then(data => updateResults(data))
+                .catch(error => console.error(error));
+        }
+
+        function startVoting() {
+            const titleInput = document.getElementById("votingTitleInput").value;
+            if (titleInput) {
+                // Simulate an AJAX call for starting voting
+                setTimeout(() => {
+                    // Replace the following code with an actual AJAX call
+                    const response = { success: true };
+                    if (response.success) {
+                        // Voting started successfully
+                        document.getElementById("votingControls").style.display = "none";
+                        document.getElementById("stopButton").style.display = "block";
+                        votingStarted = true;
+                        // Additional logic to update the UI
+                    } else {
+                        // Handle an unsuccessful start
+                        alert("Failed to start voting.");
+                    }
+                }, 1000);
+            }
+        }
+
+        function stopVoting() {
+            // Simulate an AJAX call for stopping voting
+            setTimeout(() => {
+                // Replace the following code with an actual AJAX call
+                const response = { success: true };
+                if (response.success) {
+                    // Voting stopped successfully
+                    document.getElementById("votingControls").style.display = "block";
+                    document.getElementById("stopButton").style.display = "none";
+                    votingStarted = false;
+                    // Additional logic to update the UI
+                } else {
+                    // Handle an unsuccessful stop
+                    alert("Failed to stop voting.");
+                }
+            }, 1000);
+        }
+
+
+        // Refresh results every 5 seconds
+        setInterval(fetchResults, 5000);
+
+                // Check if voting has started when the page loads
+        // if (votingStarted) {
+        //     document.getElementById("votingControls").style.display = "none";
+        //     document.getElementById("stopButton").style.display = "block";
+        // } else {
+        //     document.getElementById("results").style.display = "none";
+        //     document.getElementById("votingControls").style.display = "block";
+        // }
+
+        // Initial data fetch
+        fetchResults();
+
+        updateTimerDisplay(); // Initialize timer display
+    </script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 import json
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template,jsonify
 from twilio.twiml.messaging_response import MessagingResponse
 
 app = Flask('Voting')
@@ -51,8 +51,12 @@ members = {
 
 vote_log = {}
 
+current_vote_name =''
+currently_in_a_voting_session = False
+
 INSTRUCTIONS_MESSAGE = ' Welcome to CB7 text message voting. Text yes to vote yes, no to vote no, abstain to vote abstain, cause to vote cause. '
 INVALID_INPUT_MESSAGE = 'Your vote was NOT RECORDED, your message was invalid. '
+NOT_VOTING_MESSAGE = 'Not currently open for voting'
 
 def get_vote_from_string(incoming_message):
     if 'cause' in incoming_message or 'Cause' in incoming_message:
@@ -107,7 +111,8 @@ def write_to_file():
     f.close()
 
 def parse_incoming_text(incoming_number,incoming_msg):
-
+    if not currently_in_a_voting_session:
+        return create_response_msg(NOT_VOTING_MESSAGE)
     voting_member:Voter = members[incoming_number]
     #TODO check if number is in list, otherwise respond with "You are not in the list, here is your number, this is only available for board members"
     if check_if_instructions(incoming_msg):
@@ -120,7 +125,7 @@ def parse_incoming_text(incoming_number,incoming_msg):
     #print(get_summary())
     #write_to_file()
     r = MessagingResponse()
-    r.message('Your vote has been recorded, you voted'+vote_cast)
+    r.message('Your vote has been recorded, you voted '+vote_cast+' for resolution '+current_vote_name)
     return str(r)
 
 
@@ -148,7 +153,44 @@ def testing():
    parse_incoming_text(NUMBER_MAX,'Cause')
    return 'OK'
 
+@app.route('/startvoting', methods=['POST'])
+def startvoting():
+    global current_vote_name,currently_in_a_voting_session,title
+    try:
+        data = request.get_json()
+        title = data.get('title')
+        current_vote_name = title
+        currently_in_a_voting_session = True
 
-# TODO, fix people being able to vote twice, i.e. it should override
-# TODO, log to a file with a timestamp
-# TODO, put in input box with name of resolution. and start to begin voting on resolution. End button to stop voting. On End, write to summary log file with day timestamp
+        return 'OK'  
+    except Exception as e:
+        response = {
+            'error': 'Internal Server Error',
+            'message': 'Couldnt start voting',
+        }
+        return jsonify(response), 500
+
+@app.route('/stopvoting', methods=['POST'])
+def stopvoting():
+    global current_vote_name,currently_in_a_voting_session,vote_log
+    try:
+        current_vote_name = ''
+        currently_in_a_voting_session = False
+        vote_log = {}
+        return 'OK'  
+    except Exception as e:
+        response = {
+            'error': 'Internal Server Error',
+            'message': 'Couldnt stop voting',
+        }
+        return jsonify(response), 500
+
+
+# TODO, log every vote that comes in to a log file with the date, append mode
+# TODO, on stop voting, log to a seperate file for each resolution with summary
+# TODO, the fetch should stop when voting is not in progress
+# TODO, make everything a nice python class and make the options ENUM
+# TODO, get rid of global variables
+# TODO, change so that front end polls for is currently in Voting Session, i.e. source of truth is backend
+# TODO, change to REACT to make fluid
+# TODO, deploy somewhere

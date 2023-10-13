@@ -120,26 +120,30 @@
 </head>
 <body>
     <div class="banner">
-        <h1>Welcome to CB7 text voting.</h1>
-        <p>To begin voting, text 'instructions' to 855-643-6695</p>
+        <h1>Welcome to CB7 Meeting Dashboard</h1>
+        <p>Board Members, to begin interacting, text 'instructions' to 855-643-6695</p>
     </div>
     <div class="container">
         <div class="left-section">
+            <div class="container voting-controls" id="votingControls" style="display: none;">
+                <input type="text" id="votingTitleInput" class="voting-title-input" placeholder="Title of Vote">
+                <button onclick="startVoting()">Start Voting</button>
+            </div>
             <div id="results" class="results">
-                <h1>Results of Vote</h1>
-                <h2>Vote Summary</h2>
+                <button id="stopButton" onclick="stopVoting()" style="display: none;">Stop Voting</button>
+                <h1 id="voteTitle">Results of Vote</h1>
                 <ul>
                     <li>Yes: <span id="yesCount">0</span></li>
                     <li>No: <span id="noCount">0</span></li>
                     <li>Abstain: <span id="abstainCount">0</span></li>
                     <li>Abstaining for Cause: <span id="causeCount">0</span></li>
                 </ul>
-            </div>
-            <div class="log">
-                <h2>Log of Votes</h2>
-                <ul id="voteLog">
-                    <!-- Vote log will be populated using JavaScript -->
-                </ul>
+                <div class="log">
+                    <h2>Log of Votes</h2>
+                    <ul id="voteLog">
+                        <!-- Vote log will be populated using JavaScript -->
+                    </ul>
+                </div>
             </div>
         </div>
         <div class="right-section">
@@ -160,11 +164,7 @@
         </div>
     </div>
 
-    <div class="container voting-controls" id="votingControls" style="display: none;">
-        <input type="text" id="votingTitleInput" class="voting-title-input" placeholder="Title of Vote">
-        <button onclick="startVoting()">Start Voting</button>
-        <button id="stopButton" onclick="stopVoting()" style="display: none;">Stop Voting</button>
-    </div>
+
 
     <script>
         let timer;
@@ -246,54 +246,72 @@
         function startVoting() {
             const titleInput = document.getElementById("votingTitleInput").value;
             if (titleInput) {
-                // Simulate an AJAX call for starting voting
-                setTimeout(() => {
-                    // Replace the following code with an actual AJAX call
-                    const response = { success: true };
-                    if (response.success) {
-                        // Voting started successfully
+                // Create a payload object with the title
+                const payload = {
+                    title: titleInput,
+                };
+
+                fetch('http://127.0.0.1:5000/startvoting', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload),
+                })
+                .then(response => {
+                    if (response.status === 200) {
+                        // If the response status is 200, the voting started successfully
                         document.getElementById("votingControls").style.display = "none";
                         document.getElementById("stopButton").style.display = "block";
+                        document.getElementById("results").style.display = "block";
                         votingStarted = true;
-                        // Additional logic to update the UI
+                        document.getElementById("voteTitle").textContent = `Results of Vote - ${titleInput}`;
                     } else {
-                        // Handle an unsuccessful start
                         alert("Failed to start voting.");
                     }
-                }, 1000);
+                })
+                .catch(error => {
+                    console.error("Error starting voting:", error);
+                    alert("Failed to start voting.");
+                });
             }
         }
 
         function stopVoting() {
-            // Simulate an AJAX call for stopping voting
-            setTimeout(() => {
-                // Replace the following code with an actual AJAX call
-                const response = { success: true };
-                if (response.success) {
-                    // Voting stopped successfully
+            fetch('http://127.0.0.1:5000/stopvoting', {
+                method: 'POST',
+            })
+            .then(response => {
+                if (response.status === 200) {
+                    // If the response status is 200, the voting started successfully
                     document.getElementById("votingControls").style.display = "block";
                     document.getElementById("stopButton").style.display = "none";
+                    document.getElementById("results").style.display = "none"; // Hide the results
                     votingStarted = false;
-                    // Additional logic to update the UI
                 } else {
-                    // Handle an unsuccessful stop
                     alert("Failed to stop voting.");
                 }
-            }, 1000);
+            })
+            .catch(error => {
+                console.error("Error stopping voting:", error);
+                alert("Failed to stop voting.");
+            });
         }
+
 
 
         // Refresh results every 5 seconds
         setInterval(fetchResults, 5000);
 
                 // Check if voting has started when the page loads
-        // if (votingStarted) {
-        //     document.getElementById("votingControls").style.display = "none";
-        //     document.getElementById("stopButton").style.display = "block";
-        // } else {
-        //     document.getElementById("results").style.display = "none";
-        //     document.getElementById("votingControls").style.display = "block";
-        // }
+        if (votingStarted) {
+            document.getElementById("votingControls").style.display = "none";
+            document.getElementById("stopButton").style.display = "block";
+            document.getElementById("results").style.display = "block";
+        } else {
+            document.getElementById("results").style.display = "none";
+            document.getElementById("votingControls").style.display = "block";
+        }
 
         // Initial data fetch
         fetchResults();
@@ -302,3 +320,4 @@
     </script>
 </body>
 </html>
+

@@ -1,6 +1,7 @@
 import json
 from flask import Flask, request, render_template,jsonify
 from twilio.twiml.messaging_response import MessagingResponse
+from datetime import datetime
 
 app = Flask('Voting')
 
@@ -54,6 +55,8 @@ vote_log = {}
 current_vote_name =''
 currently_in_a_voting_session = False
 
+file_log_folder = '/home/regolith/Downloads/'
+
 INSTRUCTIONS_MESSAGE = ' Welcome to CB7 text message voting. Text yes to vote yes, no to vote no, abstain to vote abstain, cause to vote cause. '
 INVALID_INPUT_MESSAGE = 'Your vote was NOT RECORDED, your message was invalid. '
 NOT_VOTING_MESSAGE = 'Not currently open for voting'
@@ -82,16 +85,15 @@ def summarize_votes():
         vote_summary[vote_log[voter_number].voters_vote].append(vote_log[voter_number].toJSON())
 
     return vote_summary
-    
 
 def get_summary():
     vote_summary = summarize_votes()
-    pre_amble = 'Here is the voting summary \n'
+    pre_amble = '------------------ \nVote Summary for '+current_vote_name + '\n'
     results = ('Voting Summary:\n' +str(len(vote_summary[VOTE_YES]))+' yes votes \n' +str(len(vote_summary[VOTE_NO]))+' no votes \n' +str(len(vote_summary[VOTE_ABSTAIN]))+' abstain votes \n' +str(len(vote_summary[VOTE_CAUSE]))+' abstaining for cause votes \n')
-    log = '----------------------- \n'
+    log = '----Raw Log ----- \n'
     for voted_option in VOTE_OPTIONS:
         for voted_option_results in vote_summary[voted_option]:
-            log += voted_option_results['name']+" voted "+ voted_option +' \n'
+            log += voted_option_results['voter']+" voted "+ voted_option +' \n'
 
     return pre_amble+results+log
 
@@ -104,13 +106,28 @@ def create_response_msg(text_to_send):
     r.message(text_to_send)
     return str(r)
 
-def write_to_file():
+def get_day_for_timestamp():
+    today = datetime.now()
+    formatted_date = today.strftime("%Y_%m_%d")
+    return formatted_date
 
-    f = open("/home/regolith/voting.txt", "w")
+def get_time_stamp_with_seconds():
+    today = datetime.now()
+    formatted_date = today.strftime("%Y_%m_%d_%H:%M:%S")
+    return formatted_date
+
+def log_raw_vote_to_file(incoming_number,incoming_msg):
+    f = open(file_log_folder+'/vote_log'+ get_day_for_timestamp() +'.txt', "a")
+    f.write(get_time_stamp_with_seconds()+','+incoming_number+','+incoming_msg+','+current_vote_name+'\n')
+    f.close()
+
+def log_vote_summary_to_file():
+    f = open(file_log_folder+'/vote_summary'+ get_day_for_timestamp() +'.txt', "a")
     f.write(get_summary())
     f.close()
 
 def parse_incoming_text(incoming_number,incoming_msg):
+    log_raw_vote_to_file(incoming_number,incoming_msg)
     if not currently_in_a_voting_session:
         return create_response_msg(NOT_VOTING_MESSAGE)
     voting_member:Voter = members[incoming_number]
@@ -174,6 +191,7 @@ def startvoting():
 def stopvoting():
     global current_vote_name,currently_in_a_voting_session,vote_log
     try:
+        log_vote_summary_to_file()
         current_vote_name = ''
         currently_in_a_voting_session = False
         vote_log = {}
@@ -186,8 +204,6 @@ def stopvoting():
         return jsonify(response), 500
 
 
-# TODO, log every vote that comes in to a log file with the date, append mode
-# TODO, on stop voting, log to a seperate file for each resolution with summary
 # TODO, the fetch should stop when voting is not in progress
 # TODO, make everything a nice python class and make the options ENUM
 # TODO, get rid of global variables

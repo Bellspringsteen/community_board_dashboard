@@ -178,6 +178,25 @@
         let votingStarted = false
         let timerInterval
         let lastFetchTime = Date.now();
+        let currentVoteName = ''
+
+        function checkVotingStatus() {
+            fetch('http://127.0.0.1:5000/isvotingstarted')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.isVotingStarted === true) {
+                        votingStarted = true;
+                    } else {
+                        votingStarted = false;
+                    }
+                    currentVoteName = data.currentVoteName;
+                    document.getElementById("votingTitleInput").value = currentVoteName;
+                    refreshVotingVisibility()
+                })
+                .catch(error => {
+                    console.error("Error checking voting status:", error);
+                });
+        }
 
 
         function updateTimerDisplay() {
@@ -220,6 +239,16 @@
             // Enable input and "Set Time" button after resetting the timer
             document.getElementById("setTimeInput").disabled = false;
             document.getElementById("startButton").disabled = false;
+        }
+
+        function zeroResults(){
+            document.getElementById("yesCount").textContent = 0;
+            document.getElementById("noCount").textContent = 0;
+            document.getElementById("abstainCount").textContent = 0;
+            document.getElementById("causeCount").textContent = 0;
+            const voteLog = document.getElementById("voteLog");
+            voteLog.innerHTML = '';
+            document.getElementById("votingTitleInput").value = ''
         }
 
         function updateResults(data) {
@@ -278,6 +307,7 @@
                         document.getElementById("stopButton").style.display = "block";
                         document.getElementById("results").style.display = "block";
                         votingStarted = true;
+                        currentVoteName = titleInput
                         document.getElementById("voteTitle").textContent = `Results of Vote - ${titleInput}`;
                     } else {
                         alert("Failed to start voting.");
@@ -298,6 +328,8 @@
                 if (response.status === 200) {
                     // If the response status is 200, the voting started successfully
                     stopFetchResults()
+                    zeroResults()
+                    currentVoteName = ''
                     document.getElementById("votingControls").style.display = "block";
                     document.getElementById("stopButton").style.display = "none";
                     document.getElementById("results").style.display = "none"; // Hide the results
@@ -312,10 +344,23 @@
             });
         }
 
+        function refreshVotingVisibility(){
+            if (votingStarted) {
+                document.getElementById("votingControls").style.display = "none";
+                document.getElementById("stopButton").style.display = "block";
+                document.getElementById("results").style.display = "block";
+                startFetchResults()
+                document.getElementById("voteTitle").textContent = `Results of Vote - ${currentVoteName}`;
+            } else {
+                document.getElementById("results").style.display = "none";
+                document.getElementById("votingControls").style.display = "block";
+            }
+        }
+
         function startFetchResults() {
             // Clear any existing interval, if it's running
             stopFetchResults();
-
+            fetchResults();
             // Start a new interval that calls fetchResults every 5 seconds
             timerInterval = setInterval(fetchResults, 5000);
         }
@@ -333,18 +378,9 @@
             const secondsSinceUpdate = Math.floor((currentTime - lastFetchTime) / 1000);
             document.getElementById("secondsSinceUpdate").textContent = secondsSinceUpdate;
         }
+        checkVotingStatus();
 
-
-        // Check if voting has started when the page loads
-        if (votingStarted) {
-            document.getElementById("votingControls").style.display = "none";
-            document.getElementById("stopButton").style.display = "block";
-            document.getElementById("results").style.display = "block";
-            startFetchResults()
-        } else {
-            document.getElementById("results").style.display = "none";
-            document.getElementById("votingControls").style.display = "block";
-        }
+        refreshVotingVisibility();
 
         fetchResults();
 

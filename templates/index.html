@@ -99,6 +99,11 @@
             font-size: 16px;
         }
 
+        .seconds-since-update {
+            font-size: 8px; 
+            color: #888; 
+        }
+
         ul {
             list-style: none;
             padding: 0;
@@ -144,6 +149,7 @@
                         <!-- Vote log will be populated using JavaScript -->
                     </ul>
                 </div>
+                <p class="seconds-since-update">Seconds since update: <span id="secondsSinceUpdate">0</span></p>
             </div>
         </div>
         <div class="right-section">
@@ -170,6 +176,9 @@
         let timer;
         let totalSeconds = 120; // 2 minutes by default
         let votingStarted = false
+        let timerInterval
+        let lastFetchTime = Date.now();
+
 
         function updateTimerDisplay() {
             const displayMinutes = Math.floor(totalSeconds / 60);
@@ -214,6 +223,8 @@
         }
 
         function updateResults(data) {
+            lastFetchTime = Date.now();
+
             const yesCount = data["Yes"].length;
             const noCount = data["No"].length;
             const abstainCount = data["Abstain"].length;
@@ -237,6 +248,7 @@
         }
 
         function fetchResults() {
+            updateSecondsSinceUpdate();
             fetch("http://127.0.0.1:5000/results")
                 .then(response => response.json())
                 .then(data => updateResults(data))
@@ -261,6 +273,7 @@
                 .then(response => {
                     if (response.status === 200) {
                         // If the response status is 200, the voting started successfully
+                        startFetchResults()
                         document.getElementById("votingControls").style.display = "none";
                         document.getElementById("stopButton").style.display = "block";
                         document.getElementById("results").style.display = "block";
@@ -284,6 +297,7 @@
             .then(response => {
                 if (response.status === 200) {
                     // If the response status is 200, the voting started successfully
+                    stopFetchResults()
                     document.getElementById("votingControls").style.display = "block";
                     document.getElementById("stopButton").style.display = "none";
                     document.getElementById("results").style.display = "none"; // Hide the results
@@ -298,25 +312,43 @@
             });
         }
 
+        function startFetchResults() {
+            // Clear any existing interval, if it's running
+            stopFetchResults();
+
+            // Start a new interval that calls fetchResults every 5 seconds
+            timerInterval = setInterval(fetchResults, 5000);
+        }
+
+        function stopFetchResults() {
+            // Clear the interval if it's running
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        function updateSecondsSinceUpdate() {
+            const currentTime = Date.now();
+            const secondsSinceUpdate = Math.floor((currentTime - lastFetchTime) / 1000);
+            document.getElementById("secondsSinceUpdate").textContent = secondsSinceUpdate;
+        }
 
 
-        // Refresh results every 5 seconds
-        setInterval(fetchResults, 5000);
-
-                // Check if voting has started when the page loads
+        // Check if voting has started when the page loads
         if (votingStarted) {
             document.getElementById("votingControls").style.display = "none";
             document.getElementById("stopButton").style.display = "block";
             document.getElementById("results").style.display = "block";
+            startFetchResults()
         } else {
             document.getElementById("results").style.display = "none";
             document.getElementById("votingControls").style.display = "block";
         }
 
-        // Initial data fetch
         fetchResults();
 
-        updateTimerDisplay(); // Initialize timer display
+        updateTimerDisplay();
     </script>
 </body>
 </html>

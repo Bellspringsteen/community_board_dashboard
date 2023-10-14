@@ -204,9 +204,11 @@ def stopvoting():
         return jsonify(response), 500
 
 
-# TODO, the fetch should stop when voting is not in progress
+# TODO, change so that front end polls for is currently in Voting Session, i.e. source of truth is backend. ALSO make it so you can refresh webpage
+# without loosing the state
 # TODO, make everything a nice python class and make the options ENUM
 # TODO, get rid of global variables
-# TODO, change so that front end polls for is currently in Voting Session, i.e. source of truth is backend
+# TODO, deploy somewhere a) to some simple server b) the full aws experience, lambdas, writing to dynamodb, etc etc
 # TODO, change to REACT to make fluid
-# TODO, deploy somewhere
+# TODO, Gunicorn for deploying
+# TODO, admin tool? With Login?

@@ -354,8 +354,7 @@
                         document.getElementById("results").style.display = "block";
 
                         document.getElementById("right-section").style.display = "none";
-                        document.getElementById("left-section").style.width = '90%';
-
+                        document.getElementById("left-section").style.width = '45%';
 
                         votingStarted = true;
                         currentVoteName = titleInput
@@ -384,6 +383,10 @@
                     document.getElementById("votingControls").style.display = "block";
                     document.getElementById("stopButton").style.display = "none";
                     document.getElementById("results").style.display = "none"; // Hide the results
+
+                    document.getElementById("right-section").style.display = "block";
+                    document.getElementById("left-section").style.width = '90%';
+
                     votingStarted = false;
                 } else {
                     alert("Failed to stop voting.");

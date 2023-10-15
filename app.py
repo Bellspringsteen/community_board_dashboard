@@ -53,6 +53,9 @@ INSTRUCTIONS_MESSAGE = ' Welcome to CB7 text message voting. text yes to vote ye
 INVALID_INPUT_MESSAGE = 'Your vote was NOT RECORDED, your message was invalid. '
 NOT_VOTING_MESSAGE = 'Not currently open for voting'
 NOT_VALID_NUMBER_MESSAGE = 'We done have a record of your number, tell Alex your name and this number'
+JESSIE_MODE_BUT_FAILED = 'You are in Jessie mode, but the query failed'
+
+JESSIE_MODE_NUMBER = '+16467406450'
 
 file_path = './members.csv'
 
@@ -136,8 +139,31 @@ def log_vote_summary_to_file():
     f.write(get_summary())
     f.close()
 
+def extract_name_and_vote(text):
+    parts = text.split('-')
+    if len(parts) == 2:
+        name, vote = parts
+        return name, vote
+    else:
+        return None, None
+    
+def search_for_number_for_name(name_to_query):
+    for voter in members.items():
+        if name_to_query.lower_case() in voter[1].name.lower_case():
+            return voter[0]
+    return None
+
 def parse_incoming_text(incoming_number,incoming_msg):
     log_raw_vote_to_file(incoming_number,incoming_msg)
+
+    if incoming_number is JESSIE_MODE_NUMBER:
+        name_to_query,vote_to_send = extract_name_and_vote(incoming_msg)
+        incoming_msg = vote_to_send
+        incoming_number = search_for_number_for_name(name_to_query)
+
+        if incoming_number is None or incoming_msg is None:
+            return create_response_msg(JESSIE_MODE_BUT_FAILED) 
+
     if not currently_in_a_voting_session:
         return create_response_msg(NOT_VOTING_MESSAGE)
     voting_member:Voter = members[incoming_number] or None
@@ -227,7 +253,7 @@ def is_voting_started():
 
 
 # TODO, get rid of global variables
-# TODO, god tool that lets you send in a vote as someone specific? Only allowed to some user?
+# TODO, TEST this works. god tool that lets you send in a vote as someone specific? Only allowed to some user?
 # TODO, deploy somewhere a) to some simple server b) the full aws experience, lambdas, writing to dynamodb, etc etc ( Lambda Layer? Write to S3 the logs?)
 # TODO, change to REACT to make fluid
 # TODO, unit tests bro 

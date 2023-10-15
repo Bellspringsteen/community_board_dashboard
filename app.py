@@ -2,6 +2,9 @@ import json
 from flask import Flask, request, render_template,jsonify
 from twilio.twiml.messaging_response import MessagingResponse
 from datetime import datetime
+from enum import Enum
+import csv
+
 
 app = Flask('Voting')
 
@@ -14,7 +17,10 @@ class Voter:
     return f"{self.name})"
   
   def toJSON(self):
-    return json.dumps(self, default=lambda o: o.__dict__)
+    return {
+        'name': self.name,
+        'sms_number': self.sms_number
+    }
 
 class Vote:
   def __init__(self, voter:Voter, voters_vote):
@@ -27,28 +33,14 @@ class Vote:
   def toJSON(self):
     return {
         'voter': self.voter.name,
-        'votes_vote': self.voters_vote
+        'votes_vote': self.voters_vote.value
     }
-      
-VOTE_YES = 'Yes'
-VOTE_NO = 'No'
-VOTE_ABSTAIN = 'Abstain'
-VOTE_CAUSE = 'Abstaining for Cause'
-VOTE_OPTIONS = [VOTE_YES,VOTE_NO,VOTE_ABSTAIN,VOTE_CAUSE]
-
-NUMBER_ALEX_BELL = '+19178418243'
-NUMBER_BARBARA_ADLER = '+19179407979'
-NUMBER_BEVERLY = '+19175739898'
-NUMBER_MAX = '+13479783985'
-NUMBER_JESSIE = '+16467406450'
-
-members = {
-    NUMBER_ALEX_BELL: Voter('Alex Bell',NUMBER_ALEX_BELL),
-    NUMBER_BARBARA_ADLER: Voter('Barbara Adler',NUMBER_BARBARA_ADLER),
-    NUMBER_BEVERLY: Voter('Beverly',NUMBER_BEVERLY),
-    NUMBER_MAX: Voter('Max',NUMBER_MAX),
-    NUMBER_JESSIE: Voter('Jessie',NUMBER_JESSIE),
-}
+  
+class VoteOptions(Enum):
+    YES = 'Yes'
+    NO = 'No'
+    ABSTAIN = 'Abstain'
+    CAUSE = 'Abstaining for Cause'
 
 vote_log = {}
 
@@ -62,25 +54,42 @@ INVALID_INPUT_MESSAGE = 'Your vote was NOT RECORDED, your message was invalid. '
 NOT_VOTING_MESSAGE = 'Not currently open for voting'
 NOT_VALID_NUMBER_MESSAGE = 'We done have a record of your number, tell Alex your name and this number'
 
+file_path = './members.csv'
+
+# Load members from the CSV file
+
+def load_members_from_csv(file_path):
+    members = {}
+    with open(file_path, 'r') as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            name = row['name']
+            number = row['number']
+            members[number] = Voter(name, number)
+    return members
+
+members = load_members_from_csv(file_path)
+
+
 def get_vote_from_string(incoming_message):
     if 'cause' in incoming_message or 'Cause' in incoming_message:
-        return VOTE_CAUSE
+        return VoteOptions.CAUSE
     elif 'abstain' in incoming_message or 'Abstain' in incoming_message:
-        return VOTE_ABSTAIN
+        return VoteOptions.ABSTAIN
     elif 'yes'in incoming_message or 'Yes' in incoming_message:
-        return VOTE_YES
+        return VoteOptions.YES
     elif 'no' in incoming_message or 'No' in incoming_message:
-        return VOTE_NO
+        return VoteOptions.NO
     else:
         return None 
 
 def summarize_votes():
 
     vote_summary = {
-       VOTE_YES:[],
-       VOTE_NO:[],
-       VOTE_ABSTAIN:[],
-       VOTE_CAUSE:[]
+       VoteOptions.YES:[],
+       VoteOptions.NO:[],
+       VoteOptions.ABSTAIN:[],
+       VoteOptions.CAUSE:[]
     }
     for voter_number in vote_log:
         vote_summary[vote_log[voter_number].voters_vote].append(vote_log[voter_number].toJSON())
@@ -90,11 +99,11 @@ def summarize_votes():
 def get_summary():
     vote_summary = summarize_votes()
     pre_amble = '------------------ \nVote Summary for '+current_vote_name + '\n'
-    results = ('Voting Summary:\n' +str(len(vote_summary[VOTE_YES]))+' yes votes \n' +str(len(vote_summary[VOTE_NO]))+' no votes \n' +str(len(vote_summary[VOTE_ABSTAIN]))+' abstain votes \n' +str(len(vote_summary[VOTE_CAUSE]))+' abstaining for cause votes \n')
+    results = ('Voting Summary:\n' +str(len(vote_summary[VoteOptions.YES]))+' yes votes \n' +str(len(vote_summary[VoteOptions.NO]))+' no votes \n' +str(len(vote_summary[VoteOptions.ABSTAIN]))+' abstain votes \n' +str(len(vote_summary[VoteOptions.CAUSE]))+' abstaining for cause votes \n')
     log = '----Raw Log ----- \n'
-    for voted_option in VOTE_OPTIONS:
+    for voted_option in VoteOptions:
         for voted_option_results in vote_summary[voted_option]:
-            log += voted_option_results['voter']+" voted "+ voted_option +' \n'
+            log += voted_option_results['voter']+" voted "+ voted_option.value +' \n'
 
     return pre_amble+results+log
 
@@ -143,7 +152,7 @@ def parse_incoming_text(incoming_number,incoming_msg):
     vote_log[voting_member.sms_number] = Vote(voting_member,vote_cast)
 
     r = MessagingResponse()
-    r.message('Your vote has been recorded, you voted '+vote_cast+' for resolution '+current_vote_name)
+    r.message('Your vote has been recorded, you voted '+vote_cast.value+' for resolution '+current_vote_name)
     return str(r)
 
 
@@ -156,7 +165,10 @@ def incoming_text():
 
 @app.route('/results', methods=['GET'])
 def results():
-    return json.dumps(summarize_votes())
+    custom_encoder = lambda obj: obj.value if isinstance(obj, Enum) else obj
+    summary = summarize_votes()
+    converted_summary = {custom_encoder(key): value for key, value in summary.items()}
+    return json.dumps(converted_summary)
 
 @app.route('/webresults', methods=['GET'])
 def webresults():
@@ -164,12 +176,18 @@ def webresults():
 
 @app.route('/testing', methods=['GET'])
 def testing():
-   parse_incoming_text(NUMBER_ALEX_BELL,'Yes')
-   parse_incoming_text(NUMBER_BARBARA_ADLER,'Yes')
-   parse_incoming_text(NUMBER_BEVERLY,'abstain')
-   parse_incoming_text(NUMBER_JESSIE, 'no')
-   parse_incoming_text(NUMBER_MAX,'Cause')
-   return 'OK'
+    def get_number_by_name(members, name_to_find):
+        for number, voter in members.items():
+            if voter.name == name_to_find:
+                return number
+        return None  
+
+    parse_incoming_text(get_number_by_name(members, 'Alex Bell'),VoteOptions.YES.value)
+    parse_incoming_text(get_number_by_name(members, 'Barbara Adler'),VoteOptions.YES.value)
+    parse_incoming_text(get_number_by_name(members, 'Beverly'),VoteOptions.ABSTAIN.value)
+    parse_incoming_text(get_number_by_name(members, 'Max'), VoteOptions.NO.value)
+    parse_incoming_text(get_number_by_name(members, 'Jessie'),VoteOptions.CAUSE.value)
+    return 'OK'
 
 @app.route('/startvoting', methods=['POST'])
 def startvoting():
@@ -210,10 +228,12 @@ def is_voting_started():
     return jsonify({"isVotingStarted": currently_in_a_voting_session,"currentVoteName":current_vote_name})
 
 
+# TODO, if cant load members from CSV, alert in the UI
 # TODO, make everything a nice python class and make the options ENUM
 # TODO, get rid of global variables
 # TODO, god tool that lets you send in a vote as someone specific? Only allowed to some user?
 # TODO, deploy somewhere a) to some simple server b) the full aws experience, lambdas, writing to dynamodb, etc etc ( Lambda Layer? Write to S3 the logs?)
 # TODO, change to REACT to make fluid
+# TODO, unit tests bro 
 # TODO, Gunicorn for deploying to a server?
 # TODO, admin tool? With Login? to change the list of users and numbers?

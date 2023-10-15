@@ -4,7 +4,7 @@ from twilio.twiml.messaging_response import MessagingResponse
 from datetime import datetime
 from enum import Enum
 import csv
-
+import random
 
 app = Flask('Voting')
 
@@ -49,7 +49,7 @@ currently_in_a_voting_session = False
 
 file_log_folder = '/home/regolith/Downloads/'
 
-INSTRUCTIONS_MESSAGE = ' Welcome to CB7 text message voting. Text yes to vote yes, no to vote no, abstain to vote abstain, cause to vote cause. '
+INSTRUCTIONS_MESSAGE = ' Welcome to CB7 text message voting. text yes to vote yes, no to vote no, abstain to vote abstain, cause to vote cause. '
 INVALID_INPUT_MESSAGE = 'Your vote was NOT RECORDED, your message was invalid. '
 NOT_VOTING_MESSAGE = 'Not currently open for voting'
 NOT_VALID_NUMBER_MESSAGE = 'We done have a record of your number, tell Alex your name and this number'
@@ -176,23 +176,21 @@ def webresults():
 
 @app.route('/testing', methods=['GET'])
 def testing():
-    def get_number_by_name(members, name_to_find):
-        for number, voter in members.items():
-            if voter.name == name_to_find:
-                return number
-        return None  
-
-    parse_incoming_text(get_number_by_name(members, 'Alex Bell'),VoteOptions.YES.value)
-    parse_incoming_text(get_number_by_name(members, 'Barbara Adler'),VoteOptions.YES.value)
-    parse_incoming_text(get_number_by_name(members, 'Beverly'),VoteOptions.ABSTAIN.value)
-    parse_incoming_text(get_number_by_name(members, 'Max'), VoteOptions.NO.value)
-    parse_incoming_text(get_number_by_name(members, 'Jessie'),VoteOptions.CAUSE.value)
+    for voter in members.items():
+        random_vote = random.choice([VoteOptions.YES.value, VoteOptions.NO.value, VoteOptions.CAUSE.value,VoteOptions.ABSTAIN.value])
+        parse_incoming_text(voter[0], random_vote)
     return 'OK'
 
 @app.route('/startvoting', methods=['POST'])
 def startvoting():
     global current_vote_name,currently_in_a_voting_session,title
     try:
+        if len(members) == 0:
+            response = {
+                'error': 'Internal Server Error',
+                'message': 'Member list is zero',
+            }
+            return jsonify(response), 500 
         data = request.get_json()
         title = data.get('title')
         current_vote_name = title
@@ -228,8 +226,6 @@ def is_voting_started():
     return jsonify({"isVotingStarted": currently_in_a_voting_session,"currentVoteName":current_vote_name})
 
 
-# TODO, if cant load members from CSV, alert in the UI
-# TODO, make everything a nice python class and make the options ENUM
 # TODO, get rid of global variables
 # TODO, god tool that lets you send in a vote as someone specific? Only allowed to some user?
 # TODO, deploy somewhere a) to some simple server b) the full aws experience, lambdas, writing to dynamodb, etc etc ( Lambda Layer? Write to S3 the logs?)

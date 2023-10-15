@@ -13,9 +13,9 @@
         }
 
         .container {
-            max-width: 800px;
+            max-width: 95%;
             margin: 0 auto;
-            padding: 20px;
+            padding: 10px;
             background-color: #fff;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
             display: flex;
@@ -36,7 +36,7 @@
         .banner {
             background-color: #0073e6;
             color: #fff;
-            padding: 10px;
+            padding: 5px;
             text-align: center;
         }
 
@@ -47,7 +47,25 @@
         }
 
         .results {
-            margin: 20px 0;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .vote-count {
+            display: flex;
+            text-align: center;
+        }
+
+        .result-item {
+            margin-right: 20px; /* Adjust the margin as needed for spacing */
+            display: flex;
+            align-items: center;
+        }
+
+        .label {
+            font-weight: bold;
+            margin-right: 5px;
         }
 
         .log {
@@ -104,6 +122,23 @@
             color: #888; 
         }
 
+        .wide-list {
+            display: flex;
+            flex-wrap: wrap;
+            list-style: none;
+            padding: 0;
+            font-size: 14px;
+        }
+
+        .wide-list li {
+            flex: 0 0 calc(15% - 10px); 
+            margin-right: 5px;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 0px;
+            margin-bottom: 5px;
+        }
+
         ul {
             list-style: none;
             padding: 0;
@@ -125,11 +160,10 @@
 </head>
 <body>
     <div class="banner">
-        <h1>Welcome to CB7 Meeting Dashboard</h1>
         <p>Board Members, to begin interacting, text 'instructions' to 855-643-6695</p>
     </div>
     <div class="container">
-        <div class="left-section">
+        <div id="left-section" class="left-section">
             <div class="container voting-controls" id="votingControls" style="display: none;">
                 <input type="text" id="votingTitleInput" class="voting-title-input" placeholder="Title of Vote">
                 <button onclick="startVoting()">Start Voting</button>
@@ -137,22 +171,34 @@
             <div id="results" class="results">
                 <button id="stopButton" onclick="stopVoting()" style="display: none;">Stop Voting</button>
                 <h1 id="voteTitle">Results of Vote</h1>
-                <ul>
-                    <li>Yes: <span id="yesCount">0</span></li>
-                    <li>No: <span id="noCount">0</span></li>
-                    <li>Abstain: <span id="abstainCount">0</span></li>
-                    <li>Abstaining for Cause: <span id="causeCount">0</span></li>
-                </ul>
+                <div class="vote-count">
+                    <div class="result-item">
+                        <span class="label">Yes:</span>
+                        <span id="yesCount">0</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="label">No:</span>
+                        <span id="noCount">0</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="label">Abstain:</span>
+                        <span id="abstainCount">0</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="label">Abstaining for Cause:</span>
+                        <span id="causeCount">0</span>
+                    </div>
+                </div>
                 <div class="log">
                     <h2>Log of Votes</h2>
-                    <ul id="voteLog">
+                    <ul id="voteLog" class="wide-list">
                         <!-- Vote log will be populated using JavaScript -->
                     </ul>
                 </div>
                 <p class="seconds-since-update">Seconds since update: <span id="secondsSinceUpdate">0</span></p>
             </div>
         </div>
-        <div class="right-section">
+        <div id="right-section" class="right-section">
             <div class="timer">
                 <h2>Speaker Timer</h2>
                 <input type="text" id="setTimeInput" placeholder="2:00">
@@ -269,7 +315,7 @@
             for (const vote_selected of ["Yes","No","Abstain","Abstaining for Cause"]){
                 for (const vote of data[vote_selected]) {
                     const li = document.createElement("li");
-                    li.textContent = `${vote.voter} voted `+ vote_selected;
+                    li.textContent = `${vote.voter}- `+ vote_selected;
                     voteLog.appendChild(li);
                 }
             }
@@ -306,9 +352,14 @@
                         document.getElementById("votingControls").style.display = "none";
                         document.getElementById("stopButton").style.display = "block";
                         document.getElementById("results").style.display = "block";
+
+                        document.getElementById("right-section").style.display = "none";
+                        document.getElementById("left-section").style.width = '90%';
+
+
                         votingStarted = true;
                         currentVoteName = titleInput
-                        document.getElementById("voteTitle").textContent = `Results of Vote - ${titleInput}`;
+                        document.getElementById("voteTitle").textContent = `Results- ${titleInput}`;
                     } else {
                         alert("Failed to start voting.");
                     }

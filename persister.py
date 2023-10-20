@@ -8,13 +8,16 @@ class Persister:
         self.use_db = use_db
         self.currently_in_a_voting_session = False
         self.current_vote_name = ''
+        self.vote_log = {}
 
     def get_vote_log(self):
-        return vote_log
+        return self.vote_log
 
-    def set_vote_log(self, value):
-        global vote_log
-        vote_log = value
+    def add_to_vote_log(self,key,value):
+        self.vote_log[key] = value
+
+    def clear_vote_log(self):
+        self.vote_log = {}
 
     def get_current_vote_name(self):
         return self.current_vote_name

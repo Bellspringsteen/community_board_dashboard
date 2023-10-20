@@ -43,8 +43,6 @@ class VoteOptions(Enum):
     ABSTAIN = 'Abstain'
     CAUSE = 'Abstaining for Cause'
 
-vote_log = {}
-
 file_log_folder = '/home/regolith/Downloads/'
 
 INSTRUCTIONS_MESSAGE = ' Welcome to CB7 text message voting. text yes to vote yes, no to vote no, abstain to vote abstain, cause to vote cause. '
@@ -94,6 +92,7 @@ def summarize_votes():
        VoteOptions.ABSTAIN:[],
        VoteOptions.CAUSE:[]
     }
+    vote_log = persister.get_vote_log()
     for voter_number in vote_log:
         vote_summary[vote_log[voter_number].voters_vote].append(vote_log[voter_number].toJSON())
 
@@ -176,7 +175,8 @@ def parse_incoming_text(incoming_number,incoming_msg):
     if vote_cast == None:
         return create_response_msg(INVALID_INPUT_MESSAGE)
     
-    vote_log[voting_member.sms_number] = Vote(voting_member,vote_cast)
+
+    persister.add_to_vote_log(key=voting_member.sms_number,value=Vote(voting_member,vote_cast))
 
     r = MessagingResponse()
     r.message('Your vote has been recorded, you voted '+vote_cast.value+' for resolution '+persister.get_current_vote_name())
@@ -231,12 +231,11 @@ def startvoting():
 
 @app.route('/stopvoting', methods=['POST'])
 def stopvoting():
-    global vote_log
     try:
         log_vote_summary_to_file()
         persister.set_current_vote_name('')
         persister.set_currently_in_a_voting_session(False)
-        vote_log = {}
+        persister.clear_vote_log()
         return 'OK'  
     except Exception as e:
         response = {
@@ -254,6 +253,7 @@ def is_voting_started():
 # TODO refactor all of the writing of global variables into a seperate class persister, 
 # TODO in persister, break up the options into two class PersisterGlobalVariabls PersistserDynamoDB
 # TODO refactor all the incoming web calls into a seperate class 
+# TODO, when reloading in a vote, the other ui elements come back
 # TODO, change to REACT to make fluid
 # TODO, unit tests bro 
 # TODO, admin tool? With Login? to change the list of users and numbers?

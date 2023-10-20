@@ -6,22 +6,10 @@ from enum import Enum
 import csv
 import random
 from persister import Persister
+from voter import Voter
 
 app = Flask('Voting')
 
-class Voter:
-  def __init__(self, name, sms_number):
-    self.name = name
-    self.sms_number = sms_number
-
-  def __str__(self):
-    return f"{self.name})"
-  
-  def toJSON(self):
-    return {
-        'name': self.name,
-        'sms_number': self.sms_number
-    }
 
 class Vote:
   def __init__(self, voter:Voter, voters_vote):
@@ -53,24 +41,8 @@ JESSIE_MODE_BUT_FAILED = 'You are in Jessie mode, but the query failed'
 
 JESSIE_MODE_NUMBER = '+1646740645011'
 
-file_path = './members.csv'
-
 persister = Persister()
-
-# Load members from the CSV file
-
-def load_members_from_csv(file_path):
-    members = {}
-    with open(file_path, 'r') as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            name = row['name']
-            number = row['number']
-            members[number] = Voter(name, number)
-    return members
-
-members = load_members_from_csv(file_path)
-
+persister.load_members()
 
 def get_vote_from_string(incoming_message):
     if 'cause' in incoming_message or 'Cause' in incoming_message:
@@ -147,6 +119,7 @@ def extract_name_and_vote(text):
         return None, None
     
 def search_for_number_for_name(name_to_query):
+    members = persister.get_members()
     for voter in members.items():
         if name_to_query.lower_case() in voter[1].name.lower_case():
             return voter[0]
@@ -163,6 +136,7 @@ def parse_incoming_text(incoming_number,incoming_msg):
         if incoming_number is None or incoming_msg is None:
             return create_response_msg(JESSIE_MODE_BUT_FAILED) 
 
+    members = persister.get_members()
     if incoming_number not in members.keys():
         return create_response_msg(NOT_VALID_NUMBER_MESSAGE+' '+incoming_number)
 
@@ -203,6 +177,7 @@ def webresults():
 
 @app.route('/testing', methods=['GET'])
 def testing():
+    members = persister.get_members()
     for voter in members.items():
         random_vote = random.choice([VoteOptions.YES.value, VoteOptions.NO.value, VoteOptions.CAUSE.value,VoteOptions.ABSTAIN.value])
         parse_incoming_text(voter[0], random_vote)
@@ -210,6 +185,7 @@ def testing():
 
 @app.route('/startvoting', methods=['POST'])
 def startvoting():
+    members = persister.get_members()
     try:
         if len(members) == 0:
             response = {
@@ -253,6 +229,7 @@ def is_voting_started():
 # TODO refactor all of the writing of global variables into a seperate class persister, 
 # TODO in persister, break up the options into two class PersisterGlobalVariabls PersistserDynamoDB
 # TODO refactor all the incoming web calls into a seperate class 
+# TODO add type checking
 # TODO, when reloading in a vote, the other ui elements come back
 # TODO, change to REACT to make fluid
 # TODO, unit tests bro 

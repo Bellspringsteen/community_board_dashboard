@@ -1,5 +1,5 @@
 import csv 
-from voter import Voter
+from VoterClass import Voter
 
 class Persister:
     '''

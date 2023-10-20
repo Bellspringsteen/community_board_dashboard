@@ -2,34 +2,14 @@ import json
 from flask import Flask, request, render_template,jsonify
 from twilio.twiml.messaging_response import MessagingResponse
 from datetime import datetime
-from enum import Enum
 import csv
 import random
 from persister import Persister
-from voter import Voter
+from VoterClass import Voter
+from VoteClass import Vote
+from VoteOptionsEnum import VoteOptions
 
 app = Flask('Voting')
-
-
-class Vote:
-  def __init__(self, voter:Voter, voters_vote):
-    self.voter:Voter = voter
-    self.voters_vote = voters_vote
-
-  def __str__(self):
-    return f"{self.voter.vote})"
-  
-  def toJSON(self):
-    return {
-        'voter': self.voter.name,
-        'votes_vote': self.voters_vote.value
-    }
-  
-class VoteOptions(Enum):
-    YES = 'Yes'
-    NO = 'No'
-    ABSTAIN = 'Abstain'
-    CAUSE = 'Abstaining for Cause'
 
 file_log_folder = '/home/regolith/Downloads/'
 
@@ -166,7 +146,8 @@ def incoming_text():
 
 @app.route('/results', methods=['GET'])
 def results():
-    custom_encoder = lambda obj: obj.value if isinstance(obj, Enum) else obj
+    from enum import Enum
+    custom_encoder = lambda obj: obj.value if isinstance(obj, Enum) else obj #TODO , shouldnt this be apart of the class
     summary = summarize_votes()
     converted_summary = {custom_encoder(key): value for key, value in summary.items()}
     return json.dumps(converted_summary)

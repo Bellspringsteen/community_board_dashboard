@@ -45,8 +45,6 @@ class VoteOptions(Enum):
 
 vote_log = {}
 
-current_vote_name =''
-
 file_log_folder = '/home/regolith/Downloads/'
 
 INSTRUCTIONS_MESSAGE = ' Welcome to CB7 text message voting. text yes to vote yes, no to vote no, abstain to vote abstain, cause to vote cause. '
@@ -103,7 +101,7 @@ def summarize_votes():
 
 def get_summary():
     vote_summary = summarize_votes()
-    pre_amble = '------------------ \nVote Summary for '+current_vote_name + '\n'
+    pre_amble = '------------------ \nVote Summary for '+persister.get_current_vote_name() + '\n'
     results = ('Voting Summary:\n' +str(len(vote_summary[VoteOptions.YES]))+' yes votes \n' +str(len(vote_summary[VoteOptions.NO]))+' no votes \n' +str(len(vote_summary[VoteOptions.ABSTAIN]))+' abstain votes \n' +str(len(vote_summary[VoteOptions.CAUSE]))+' abstaining for cause votes \n')
     log = '----Raw Log ----- \n'
     for voted_option in VoteOptions:
@@ -133,7 +131,7 @@ def get_time_stamp_with_seconds():
 
 def log_raw_vote_to_file(incoming_number,incoming_msg):
     f = open(file_log_folder+'/vote_log'+ get_day_for_timestamp() +'.txt', "a")
-    f.write(get_time_stamp_with_seconds()+','+incoming_number+','+incoming_msg+','+current_vote_name+'\n')
+    f.write(get_time_stamp_with_seconds()+','+incoming_number+','+incoming_msg+','+persister.get_current_vote_name()+'\n')
     f.close()
 
 def log_vote_summary_to_file():
@@ -181,7 +179,7 @@ def parse_incoming_text(incoming_number,incoming_msg):
     vote_log[voting_member.sms_number] = Vote(voting_member,vote_cast)
 
     r = MessagingResponse()
-    r.message('Your vote has been recorded, you voted '+vote_cast.value+' for resolution '+current_vote_name)
+    r.message('Your vote has been recorded, you voted '+vote_cast.value+' for resolution '+persister.get_current_vote_name())
     return str(r)
 
 
@@ -212,7 +210,6 @@ def testing():
 
 @app.route('/startvoting', methods=['POST'])
 def startvoting():
-    global current_vote_name
     try:
         if len(members) == 0:
             response = {
@@ -222,7 +219,7 @@ def startvoting():
             return jsonify(response), 500 
         data = request.get_json()
         title = data.get('title')
-        current_vote_name = title
+        persister.set_current_vote_name(title)
         persister.set_currently_in_a_voting_session(True)
         return 'OK'  
     except Exception as e:
@@ -234,10 +231,10 @@ def startvoting():
 
 @app.route('/stopvoting', methods=['POST'])
 def stopvoting():
-    global current_vote_name,vote_log
+    global vote_log
     try:
         log_vote_summary_to_file()
-        current_vote_name = ''
+        persister.set_current_vote_name('')
         persister.set_currently_in_a_voting_session(False)
         vote_log = {}
         return 'OK'  
@@ -251,7 +248,7 @@ def stopvoting():
 
 @app.route('/isvotingstarted', methods=['GET'])
 def is_voting_started():
-    return jsonify({"isVotingStarted": persister.get_currently_in_a_voting_session(),"currentVoteName":current_vote_name})
+    return jsonify({"isVotingStarted": persister.get_currently_in_a_voting_session(),"currentVoteName":persister.get_current_vote_name()})
 
 # TODO deploy this on rasberry pi at home, open up incoming port, ask everyone to text once to verify it works. 
 # TODO refactor all of the writing of global variables into a seperate class persister, 

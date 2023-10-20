@@ -5,6 +5,7 @@ from datetime import datetime
 from enum import Enum
 import csv
 import random
+from persister import Persister
 
 app = Flask('Voting')
 
@@ -45,19 +46,20 @@ class VoteOptions(Enum):
 vote_log = {}
 
 current_vote_name =''
-currently_in_a_voting_session = False
 
 file_log_folder = '/home/regolith/Downloads/'
 
 INSTRUCTIONS_MESSAGE = ' Welcome to CB7 text message voting. text yes to vote yes, no to vote no, abstain to vote abstain, cause to vote cause. '
 INVALID_INPUT_MESSAGE = 'Your vote was NOT RECORDED, your message was invalid. '
 NOT_VOTING_MESSAGE = 'Not currently open for voting'
-NOT_VALID_NUMBER_MESSAGE = 'We done have a record of your number, tell Alex your name and this number'
+NOT_VALID_NUMBER_MESSAGE = 'We dont have a record of your number, tell Alex your name and this number'
 JESSIE_MODE_BUT_FAILED = 'You are in Jessie mode, but the query failed'
 
-JESSIE_MODE_NUMBER = '+16467406450'
+JESSIE_MODE_NUMBER = '+1646740645011'
 
 file_path = './members.csv'
+
+persister = Persister()
 
 # Load members from the CSV file
 
@@ -164,11 +166,12 @@ def parse_incoming_text(incoming_number,incoming_msg):
         if incoming_number is None or incoming_msg is None:
             return create_response_msg(JESSIE_MODE_BUT_FAILED) 
 
-    if not currently_in_a_voting_session:
-        return create_response_msg(NOT_VOTING_MESSAGE)
-    voting_member:Voter = members[incoming_number] or None
-    if not voting_member:
+    if incoming_number not in members.keys():
         return create_response_msg(NOT_VALID_NUMBER_MESSAGE+' '+incoming_number)
+
+    voting_member:Voter = members[incoming_number] or None
+    if not persister.get_currently_in_a_voting_session():
+        return create_response_msg(NOT_VOTING_MESSAGE)
     if check_if_instructions(incoming_msg):
         return create_response_msg(INSTRUCTIONS_MESSAGE)
     vote_cast = get_vote_from_string(incoming_msg)
@@ -209,7 +212,7 @@ def testing():
 
 @app.route('/startvoting', methods=['POST'])
 def startvoting():
-    global current_vote_name,currently_in_a_voting_session,title
+    global current_vote_name
     try:
         if len(members) == 0:
             response = {
@@ -220,8 +223,7 @@ def startvoting():
         data = request.get_json()
         title = data.get('title')
         current_vote_name = title
-        currently_in_a_voting_session = True
-
+        persister.set_currently_in_a_voting_session(True)
         return 'OK'  
     except Exception as e:
         response = {
@@ -232,11 +234,11 @@ def startvoting():
 
 @app.route('/stopvoting', methods=['POST'])
 def stopvoting():
-    global current_vote_name,currently_in_a_voting_session,vote_log
+    global current_vote_name,vote_log
     try:
         log_vote_summary_to_file()
         current_vote_name = ''
-        currently_in_a_voting_session = False
+        persister.set_currently_in_a_voting_session(False)
         vote_log = {}
         return 'OK'  
     except Exception as e:
@@ -249,13 +251,12 @@ def stopvoting():
 
 @app.route('/isvotingstarted', methods=['GET'])
 def is_voting_started():
-    return jsonify({"isVotingStarted": currently_in_a_voting_session,"currentVoteName":current_vote_name})
+    return jsonify({"isVotingStarted": persister.get_currently_in_a_voting_session(),"currentVoteName":current_vote_name})
 
-
-# TODO, get rid of global variables
-# TODO, TEST this works. god tool that lets you send in a vote as someone specific? Only allowed to some user?
-# TODO, deploy somewhere a) to some simple server b) the full aws experience, lambdas, writing to dynamodb, etc etc ( Lambda Layer? Write to S3 the logs?)
+# TODO deploy this on rasberry pi at home, open up incoming port, ask everyone to text once to verify it works. 
+# TODO refactor all of the writing of global variables into a seperate class persister, 
+# TODO in persister, break up the options into two class PersisterGlobalVariabls PersistserDynamoDB
+# TODO refactor all the incoming web calls into a seperate class 
 # TODO, change to REACT to make fluid
 # TODO, unit tests bro 
-# TODO, Gunicorn for deploying to a server?
 # TODO, admin tool? With Login? to change the list of users and numbers?

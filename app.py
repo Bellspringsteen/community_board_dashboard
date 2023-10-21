@@ -1,6 +1,4 @@
 import json
-from flask import Flask, request, render_template,jsonify
-from twilio.twiml.messaging_response import MessagingResponse
 from datetime import datetime
 import csv
 import random
@@ -8,8 +6,7 @@ from PersisterClass import PersisterS3,PersisterGlobalVariables
 from VoterClass import Voter
 from VoteClass import Vote
 from VoteOptionsEnum import VoteOptions
-
-app = Flask('Voting')
+from twilio.twiml.messaging_response import MessagingResponse
 
 file_log_folder = '/home/regolith/Downloads/'
 
@@ -21,8 +18,9 @@ JESSIE_MODE_BUT_FAILED = 'You are in Jessie mode, but the query failed'
 
 JESSIE_MODE_NUMBER = '+1646740645011'
 
-persister = PersisterS3()
-persister.load_members()
+
+persister = PersisterGlobalVariables()
+persister.load_members() # only have to run this if the 
 
 def get_vote_from_string(incoming_message):
     if 'cause' in incoming_message or 'Cause' in incoming_message:
@@ -137,82 +135,14 @@ def parse_incoming_text(incoming_number,incoming_msg):
     return str(r)
 
 
-@app.route('/', methods=['POST'])
-def incoming_text():
-    incoming_msg = request.values['Body']
-    incoming_number = request.values['From']
-    return parse_incoming_text(incoming_number,incoming_msg)
-    
 
-@app.route('/results', methods=['GET'])
-def results():
-    from enum import Enum
-    custom_encoder = lambda obj: obj.value if isinstance(obj, Enum) else obj #TODO , shouldnt this be apart of the class
-    summary = summarize_votes()
-    converted_summary = {custom_encoder(key): value for key, value in summary.items()}
-    return json.dumps(converted_summary)
-
-@app.route('/webresults', methods=['GET'])
-def webresults():
-   return render_template('./index.html')
-
-@app.route('/testing', methods=['GET'])
-def testing():
-    members = persister.get_members()
-    for voter in members.items():
-        random_vote = random.choice([VoteOptions.YES.value, VoteOptions.NO.value, VoteOptions.CAUSE.value,VoteOptions.ABSTAIN.value])
-        parse_incoming_text(voter[0], random_vote)
-    return 'OK'
-
-@app.route('/startvoting', methods=['POST'])
-def startvoting():
-    members = persister.get_members()
-    try:
-        if len(members) == 0:
-            response = {
-                'error': 'Internal Server Error',
-                'message': 'Member list is zero',
-            }
-            return jsonify(response), 500 
-        data = request.get_json()
-        title = data.get('title')
-        persister.set_current_vote_name(title)
-        persister.set_currently_in_a_voting_session(True)
-        return 'OK'  
-    except Exception as e:
-        response = {
-            'error': 'Internal Server Error',
-            'message': 'Couldnt start voting',
-        }
-        return jsonify(response), 500
-
-@app.route('/stopvoting', methods=['POST'])
-def stopvoting():
-    try:
-        log_vote_summary_to_file()
-        persister.set_current_vote_name('')
-        persister.set_currently_in_a_voting_session(False)
-        persister.clear_vote_log()
-        return 'OK'  
-    except Exception as e:
-        response = {
-            'error': 'Internal Server Error',
-            'message': 'Couldnt stop voting',
-        }
-        return jsonify(response), 500
-    
-
-@app.route('/isvotingstarted', methods=['GET'])
-def is_voting_started():
-    return jsonify({"isVotingStarted": persister.get_currently_in_a_voting_session(),"currentVoteName":persister.get_current_vote_name()})
-
-# TODO deploy this on rasberry pi at home, open up incoming port, ask everyone to text once to verify it works. 
-# TODO implement PersistserS3
 # TODO refactor all the incoming web calls into a seperate class 
 # TODO refactor all the logging vote class, and then allow for logging to S3 or local
+# TODO, dont just pass on exceptions, got to do something there
 # TODO, some kind of simple password. Window.alert? Pass it in a header?
 # TODO, some kind of deployment scripts?
 # TODO add type checking
+# TODO, when the timer is over. Show a BIG STOP SIGN and start playing music louder and louder
 # TODO, when reloading in a vote, the other ui elements come back
 # TODO, change to REACT to make fluid
 # TODO, unit tests bro 

@@ -4,7 +4,7 @@ from twilio.twiml.messaging_response import MessagingResponse
 from datetime import datetime
 import csv
 import random
-from PersisterClass import PersisterDynamoDB,PersisterGlobalVariables
+from PersisterClass import PersisterS3,PersisterGlobalVariables
 from VoterClass import Voter
 from VoteClass import Vote
 from VoteOptionsEnum import VoteOptions
@@ -21,7 +21,7 @@ JESSIE_MODE_BUT_FAILED = 'You are in Jessie mode, but the query failed'
 
 JESSIE_MODE_NUMBER = '+1646740645011'
 
-persister = PersisterGlobalVariables()
+persister = PersisterS3()
 persister.load_members()
 
 def get_vote_from_string(incoming_message):
@@ -207,10 +207,11 @@ def is_voting_started():
     return jsonify({"isVotingStarted": persister.get_currently_in_a_voting_session(),"currentVoteName":persister.get_current_vote_name()})
 
 # TODO deploy this on rasberry pi at home, open up incoming port, ask everyone to text once to verify it works. 
-# TODO refactor all of the writing of global variables into a seperate class persister, 
-# TODO in persister, break up the options into two class PersisterGlobalVariabls PersistserDynamoDB
+# TODO implement PersistserS3
 # TODO refactor all the incoming web calls into a seperate class 
 # TODO refactor all the logging vote class, and then allow for logging to S3 or local
+# TODO, some kind of simple password. Window.alert? Pass it in a header?
+# TODO, some kind of deployment scripts?
 # TODO add type checking
 # TODO, when reloading in a vote, the other ui elements come back
 # TODO, change to REACT to make fluid

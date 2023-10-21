@@ -3,7 +3,6 @@ from flask import Flask, request, render_template,jsonify
 from main import * 
 app = Flask('Voting')
 
-
 @app.route('/', methods=['POST'])
 def incoming_text():
     incoming_msg = request.values['Body']

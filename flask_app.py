@@ -1,6 +1,6 @@
 from flask import Flask, request, render_template,jsonify
 
-from app import * 
+from main import * 
 app = Flask('Voting')
 
 
@@ -13,11 +13,7 @@ def incoming_text():
 
 @app.route('/results', methods=['GET'])
 def results():
-    from enum import Enum
-    custom_encoder = lambda obj: obj.value if isinstance(obj, Enum) else obj #TODO , shouldnt this be apart of the class
-    summary = summarize_votes()
-    converted_summary = {custom_encoder(key): value for key, value in summary.items()}
-    return json.dumps(converted_summary)
+    return api_get_results()
 
 @app.route('/webresults', methods=['GET'])
 def webresults():
@@ -25,26 +21,22 @@ def webresults():
 
 @app.route('/testing', methods=['GET'])
 def testing():
-    members = persister.get_members()
-    for voter in members.items():
-        random_vote = random.choice([VoteOptions.YES.value, VoteOptions.NO.value, VoteOptions.CAUSE.value,VoteOptions.ABSTAIN.value])
-        parse_incoming_text(voter[0], random_vote)
+    api_testing()
     return 'OK'
 
 @app.route('/startvoting', methods=['POST'])
 def startvoting():
-    members = persister.get_members()
     try:
-        if len(members) == 0:
+        if true_if_members_list_zero():
             response = {
                 'error': 'Internal Server Error',
                 'message': 'Member list is zero',
             }
             return jsonify(response), 500 
+    
         data = request.get_json()
         title = data.get('title')
-        persister.set_current_vote_name(title)
-        persister.set_currently_in_a_voting_session(True)
+        api_start_voting(title=title)
         return 'OK'  
     except Exception as e:
         response = {
@@ -56,10 +48,7 @@ def startvoting():
 @app.route('/stopvoting', methods=['POST'])
 def stopvoting():
     try:
-        log_vote_summary_to_file()
-        persister.set_current_vote_name('')
-        persister.set_currently_in_a_voting_session(False)
-        persister.clear_vote_log()
+        api_stop_voting()
         return 'OK'  
     except Exception as e:
         response = {
@@ -71,4 +60,4 @@ def stopvoting():
 
 @app.route('/isvotingstarted', methods=['GET'])
 def is_voting_started():
-    return jsonify({"isVotingStarted": persister.get_currently_in_a_voting_session(),"currentVoteName":persister.get_current_vote_name()})
+    return jsonify(api_is_voting_started())

@@ -134,7 +134,38 @@ def parse_incoming_text(incoming_number,incoming_msg):
     r.message('Your vote has been recorded, you voted '+vote_cast.value+' for resolution '+persister.get_current_vote_name())
     return str(r)
 
+def true_if_members_list_zero():
+    members = persister.get_members()
+    return len(members) == 0
 
+#### API SECTION ###
+
+def api_get_results():
+    from enum import Enum
+    custom_encoder = lambda obj: obj.value if isinstance(obj, Enum) else obj #TODO , shouldnt this be apart of the class
+    summary = summarize_votes()
+    converted_summary = {custom_encoder(key): value for key, value in summary.items()}
+    return json.dumps(converted_summary)
+
+
+def api_testing():
+    members = persister.get_members()
+    for voter in members.items():
+        random_vote = random.choice([VoteOptions.YES.value, VoteOptions.NO.value, VoteOptions.CAUSE.value,VoteOptions.ABSTAIN.value])
+        parse_incoming_text(voter[0], random_vote)
+
+def api_start_voting(title):
+    persister.set_current_vote_name(title)
+    persister.set_currently_in_a_voting_session(True)
+
+def api_stop_voting():
+    log_vote_summary_to_file()
+    persister.set_current_vote_name('')
+    persister.set_currently_in_a_voting_session(False)
+    persister.clear_vote_log()
+
+def api_is_voting_started():
+    return {"isVotingStarted": persister.get_currently_in_a_voting_session(),"currentVoteName":persister.get_current_vote_name()}
 
 # TODO refactor all the incoming web calls into a seperate class 
 # TODO refactor all the logging vote class, and then allow for logging to S3 or local

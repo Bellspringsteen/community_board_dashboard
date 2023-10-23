@@ -1,8 +1,0 @@
-{
-    "path": "/webresults",
-    "httpMethod": "GET",
-    "headers": {
-      "Authorization": "your-secret-key"  // Add your authentication token here if required
-    }
-  }
-  

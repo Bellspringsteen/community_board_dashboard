@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voting Results</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 95%;
+            margin: 0 auto;
+            padding: 10px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        .left-section {
+            flex: 1;
+            padding-right: 20px;
+        }
+
+        .right-section {
+            flex: 1;
+            padding-left: 20px;
+            text-align: center;
+        }
+
+        .banner {
+            background-color: #0073e6;
+            color: #fff;
+            padding: 5px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 24px;
+            text-align: center;
+            color: #333;
+        }
+
+        .results {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .vote-count {
+            display: flex;
+            text-align: center;
+        }
+
+        .result-item {
+            margin-right: 20px; /* Adjust the margin as needed for spacing */
+            display: flex;
+            align-items: center;
+        }
+
+        .label {
+            font-weight: bold;
+            margin-right: 5px;
+        }
+
+        .log {
+            margin: 20px 0;
+        }
+
+        .timer {
+            margin: 20px 0;
+            border: 2px solid #0073e6; /* Add a border with a color of your choice */
+            padding: 20px;
+            text-align: center;
+        }
+
+        .queue {
+            margin: 20px 0;
+            border: 2px solid #0073e6;
+            padding: 20px;
+            text-align: center;
+        }
+
+        #timerDisplay {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        #timerButtons {
+            margin-top: 10px;
+        }
+
+        #setTimeInput {
+            width: 100px; /* Wider input to accommodate the new format */
+            font-size: 16px;
+        }
+
+        #queueDescription {
+            font-weight: bold;
+        }
+
+        #queueText {
+            font-style: italic;
+        }
+
+        .voting-controls {
+            margin-top: 20px;
+        }
+
+        .voting-title-input {
+            width: 200px;
+            font-size: 16px;
+        }
+
+        .seconds-since-update {
+            font-size: 8px; 
+            color: #888; 
+        }
+
+        .wide-list {
+            display: flex;
+            flex-wrap: wrap;
+            list-style: none;
+            padding: 0;
+            font-size: 14px;
+        }
+
+        .wide-list li {
+            flex: 0 0 calc(15% - 10px); 
+            margin-right: 5px;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 0px;
+            margin-bottom: 5px;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        li {
+            margin: 5px 0;
+        }
+
+        #timerDisplay {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        #timerButtons {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="banner">
+        <p>Board Members, to begin interacting, text 'instructions' to 855-643-6695</p>
+    </div>
+    <div class="container">
+        <div id="left-section" class="left-section">
+            <div class="container voting-controls" id="votingControls" style="display: none;">
+                <input type="text" id="votingTitleInput" class="voting-title-input" placeholder="Title of Vote">
+                <button onclick="startVoting()">Start Voting</button>
+            </div>
+            <div id="results" class="results">
+                <button id="stopButton" onclick="stopVoting()" style="display: none;">Stop Voting</button>
+                <h1 id="voteTitle">Results of Vote</h1>
+                <div class="vote-count">
+                    <div class="result-item">
+                        <span class="label">Yes:</span>
+                        <span id="yesCount">0</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="label">No:</span>
+                        <span id="noCount">0</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="label">Abstain:</span>
+                        <span id="abstainCount">0</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="label">Abstaining for Cause:</span>
+                        <span id="causeCount">0</span>
+                    </div>
+                </div>
+                <div class="log">
+                    <h2>Log of Votes</h2>
+                    <ul id="voteLog" class="wide-list">
+                        <!-- Vote log will be populated using JavaScript -->
+                    </ul>
+                </div>
+                <p class="seconds-since-update">Seconds since update: <span id="secondsSinceUpdate">0</span></p>
+            </div>
+        </div>
+        <div id="right-section" class="right-section">
+            <div class="timer">
+                <h2>Speaker Timer</h2>
+                <input type="text" id="setTimeInput" placeholder="2:00">
+                <button onclick="setTimer()">Set Time</button>
+                <div id="timerDisplay">2:00</div>
+                <div id="timerButtons">
+                    <button id="startButton" onclick="startTimer()">Start</button>
+                    <button id="resetButton" onclick="resetTimer()">Reset</button>
+                </div>
+            </div>
+            <div class="queue">
+                <h2 id="queueDescription">Board Members Queue to Speak</h2>
+                <div id="queueText">Coming Soon</div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <script>
+        let timer;
+        let totalSeconds = 120; // 2 minutes by default
+        let votingStarted = false
+        let timerInterval
+        let lastFetchTime = Date.now();
+        let currentVoteName = ''
+
+        function checkVotingStatus() {
+            fetch('http://127.0.0.1:5000/isvotingstarted')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.isVotingStarted === true) {
+                        votingStarted = true;
+                    } else {
+                        votingStarted = false;
+                    }
+                    currentVoteName = data.currentVoteName;
+                    document.getElementById("votingTitleInput").value = currentVoteName;
+                    refreshVotingVisibility()
+                })
+                .catch(error => {
+                    console.error("Error checking voting status:", error);
+                });
+        }
+
+
+        function updateTimerDisplay() {
+            const displayMinutes = Math.floor(totalSeconds / 60);
+            const displaySeconds = totalSeconds % 60;
+            document.getElementById("timerDisplay").textContent = `${displayMinutes.toString().padStart(2, '0')}:${displaySeconds.toString().padStart(2, '0')}`;
+        }
+
+        function setTimer() {
+            const setTimeInput = document.getElementById("setTimeInput").value;
+            const [minutes, seconds] = setTimeInput.split(':').map(part => parseInt(part, 10));
+            if (!isNaN(minutes) && !isNaN(seconds) && minutes >= 0 && seconds >= 0) {
+                totalSeconds = minutes * 60 + seconds;
+                updateTimerDisplay();
+            }
+        }
+
+        function startTimer() {
+            if (!timer) {
+                timer = setInterval(() => {
+                    if (totalSeconds === 0) {
+                        clearInterval(timer);
+                        timer = null;
+                        return;
+                    }
+                    totalSeconds--;
+                    updateTimerDisplay();
+                }, 1000);
+                // Disable input and "Set Time" button after starting the timer
+                document.getElementById("setTimeInput").disabled = true;
+                document.getElementById("startButton").disabled = true;
+            }
+        }
+
+        function resetTimer() {
+            clearInterval(timer);
+            timer = null;
+            totalSeconds = 120; // Reset to 2 minutes
+            updateTimerDisplay();
+            // Enable input and "Set Time" button after resetting the timer
+            document.getElementById("setTimeInput").disabled = false;
+            document.getElementById("startButton").disabled = false;
+        }
+
+        function zeroResults(){
+            document.getElementById("yesCount").textContent = 0;
+            document.getElementById("noCount").textContent = 0;
+            document.getElementById("abstainCount").textContent = 0;
+            document.getElementById("causeCount").textContent = 0;
+            const voteLog = document.getElementById("voteLog");
+            voteLog.innerHTML = '';
+            document.getElementById("votingTitleInput").value = ''
+        }
+
+        function updateResults(data) {
+            lastFetchTime = Date.now();
+
+            const yesCount = data["Yes"].length;
+            const noCount = data["No"].length;
+            const abstainCount = data["Abstain"].length;
+            const causeCount = data["Abstaining for Cause"].length;
+
+            document.getElementById("yesCount").textContent = yesCount;
+            document.getElementById("noCount").textContent = noCount;
+            document.getElementById("abstainCount").textContent = abstainCount;
+            document.getElementById("causeCount").textContent = causeCount;
+
+            const voteLog = document.getElementById("voteLog");
+            voteLog.innerHTML = '';
+            for (const vote_selected of ["Yes","No","Abstain","Abstaining for Cause"]){
+                for (const vote of data[vote_selected]) {
+                    const li = document.createElement("li");
+                    li.textContent = `${vote.voter}- `+ vote_selected;
+                    voteLog.appendChild(li);
+                }
+            }
+
+        }
+
+        function fetchResults() {
+            updateSecondsSinceUpdate();
+            fetch("http://127.0.0.1:5000/results")
+                .then(response => response.json())
+                .then(data => updateResults(data))
+                .catch(error => console.error(error));
+        }
+
+        function startVoting() {
+            const titleInput = document.getElementById("votingTitleInput").value;
+            if (titleInput) {
+                // Create a payload object with the title
+                const payload = {
+                    title: titleInput,
+                };
+
+                fetch('http://127.0.0.1:5000/startvoting', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload),
+                })
+                .then(response => {
+                    if (response.status === 200) {
+                        // If the response status is 200, the voting started successfully
+                        startFetchResults()
+                        document.getElementById("votingControls").style.display = "none";
+                        document.getElementById("stopButton").style.display = "block";
+                        document.getElementById("results").style.display = "block";
+
+                        document.getElementById("right-section").style.display = "none";
+                        document.getElementById("left-section").style.width = '45%';
+
+                        votingStarted = true;
+                        currentVoteName = titleInput
+                        document.getElementById("voteTitle").textContent = `Results- ${titleInput}`;
+                    } else {
+                        alert("Failed to start voting.");
+                    }
+                })
+                .catch(error => {
+                    console.error("Error starting voting:", error);
+                    alert("Failed to start voting.");
+                });
+            }
+        }
+
+        function stopVoting() {
+            fetch('http://127.0.0.1:5000/stopvoting', {
+                method: 'POST',
+            })
+            .then(response => {
+                if (response.status === 200) {
+                    // If the response status is 200, the voting started successfully
+                    stopFetchResults()
+                    zeroResults()
+                    currentVoteName = ''
+                    document.getElementById("votingControls").style.display = "block";
+                    document.getElementById("stopButton").style.display = "none";
+                    document.getElementById("results").style.display = "none"; // Hide the results
+
+                    document.getElementById("right-section").style.display = "block";
+                    document.getElementById("left-section").style.width = '90%';
+
+                    votingStarted = false;
+                } else {
+                    alert("Failed to stop voting.");
+                }
+            })
+            .catch(error => {
+                console.error("Error stopping voting:", error);
+                alert("Failed to stop voting.");
+            });
+        }
+
+        function refreshVotingVisibility(){
+            if (votingStarted) {
+                document.getElementById("votingControls").style.display = "none";
+                document.getElementById("stopButton").style.display = "block";
+                document.getElementById("results").style.display = "block";
+                startFetchResults()
+                document.getElementById("voteTitle").textContent = `Results of Vote - ${currentVoteName}`;
+            } else {
+                document.getElementById("results").style.display = "none";
+                document.getElementById("votingControls").style.display = "block";
+            }
+        }
+
+        function startFetchResults() {
+            // Clear any existing interval, if it's running
+            stopFetchResults();
+            fetchResults();
+            // Start a new interval that calls fetchResults every 5 seconds
+            timerInterval = setInterval(fetchResults, 5000);
+        }
+
+        function stopFetchResults() {
+            // Clear the interval if it's running
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        function updateSecondsSinceUpdate() {
+            const currentTime = Date.now();
+            const secondsSinceUpdate = Math.floor((currentTime - lastFetchTime) / 1000);
+            document.getElementById("secondsSinceUpdate").textContent = secondsSinceUpdate;
+        }
+        checkVotingStatus();
+
+        refreshVotingVisibility();
+
+        fetchResults();
+
+        updateTimerDisplay();
+    </script>
+</body>
+</html>
+

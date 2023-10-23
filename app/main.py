@@ -1,5 +1,4 @@
 import json
-from datetime import datetime
 import csv
 import random
 from PersisterClass import PersisterS3,PersisterGlobalVariables
@@ -7,8 +6,7 @@ from VoterClass import Voter
 from VoteClass import Vote
 from VoteOptionsEnum import VoteOptions
 from twilio.twiml.messaging_response import MessagingResponse
-
-file_log_folder = '/home/regolith/Downloads/'
+from VoteLoggingClass import LocalVoteLoggingClass
 
 INSTRUCTIONS_MESSAGE = ' Welcome to CB7 text message voting. text yes to vote yes, no to vote no, abstain to vote abstain, cause to vote cause. '
 INVALID_INPUT_MESSAGE = 'Your vote was NOT RECORDED, your message was invalid. '
@@ -18,9 +16,16 @@ JESSIE_MODE_BUT_FAILED = 'You are in Jessie mode, but the query failed'
 
 JESSIE_MODE_NUMBER = '+1646740645011'
 
+# S3 Persister
+#persister = PersisterS3()
 
-persister = PersisterS3()
-#persister.load_members() # only have to run this if the 
+# Local Persister
+persister= PersisterGlobalVariables()
+persister.load_members() 
+
+
+# Local Vote Logger
+votelogger = LocalVoteLoggingClass()
 
 def get_vote_from_string(incoming_message):
     if 'cause' in incoming_message or 'Cause' in incoming_message:
@@ -68,26 +73,6 @@ def create_response_msg(text_to_send):
     r.message(text_to_send)
     return str(r)
 
-def get_day_for_timestamp():
-    today = datetime.now()
-    formatted_date = today.strftime("%Y_%m_%d")
-    return formatted_date
-
-def get_time_stamp_with_seconds():
-    today = datetime.now()
-    formatted_date = today.strftime("%Y_%m_%d_%H:%M:%S")
-    return formatted_date
-
-def log_raw_vote_to_file(incoming_number,incoming_msg):
-    f = open(file_log_folder+'/vote_log'+ get_day_for_timestamp() +'.txt', "a")
-    f.write(get_time_stamp_with_seconds()+','+incoming_number+','+incoming_msg+','+persister.get_current_vote_name()+'\n')
-    f.close()
-
-def log_vote_summary_to_file():
-    f = open(file_log_folder+'/vote_summary'+ get_day_for_timestamp() +'.txt', "a")
-    f.write(get_summary())
-    f.close()
-
 def extract_name_and_vote(text):
     parts = text.split('-')
     if len(parts) == 2:
@@ -104,7 +89,7 @@ def search_for_number_for_name(name_to_query):
     return None
 
 def parse_incoming_text(incoming_number,incoming_msg):
-    log_raw_vote_to_file(incoming_number,incoming_msg)
+    votelogger.log_raw_vote_to_file(incoming_number,incoming_msg,persister.get_current_vote_name())
 
     if incoming_number is JESSIE_MODE_NUMBER:
         name_to_query,vote_to_send = extract_name_and_vote(incoming_msg)
@@ -159,7 +144,7 @@ def api_start_voting(title):
     persister.set_currently_in_a_voting_session(True)
 
 def api_stop_voting():
-    log_vote_summary_to_file()
+    votelogger.log_vote_summary_to_file(get_summary())
     persister.set_current_vote_name('')
     persister.set_currently_in_a_voting_session(False)
     persister.clear_vote_log()
@@ -167,15 +152,14 @@ def api_stop_voting():
 def api_is_voting_started():
     return {"isVotingStarted": persister.get_currently_in_a_voting_session(),"currentVoteName":persister.get_current_vote_name()}
 
-# TODO refactor all the incoming web calls into a seperate class 
 # TODO refactor all the logging vote class, and then allow for logging to S3 or local
 # TODO, dont just pass on exceptions, got to do something there
 # TODO, some kind of simple password. Window.alert? Pass it in a header? For the twilio, i think your going to have to pass it in the url parameters
 # TODO, put it on the custom domain you bought
 # TODO, some kind of deployment scripts? put the html in a static bucket
-# TODO add type checking
 # TODO, when the timer is over. Show a BIG STOP SIGN and start playing music louder and louder
 # TODO, when reloading in a vote, the other ui elements come back
+# TODO add type checking
 # TODO, change to REACT to make fluid
 # TODO, unit tests bro 
 # TODO, admin tool? With Login? to change the list of users and numbers?

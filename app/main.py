@@ -25,10 +25,10 @@ persister.load_members()
 
 
 # Local Vote Logger
-#votelogger = LocalVoteLoggingClass()
+votelogger = LocalVoteLoggingClass()
 
 # S3 Vote Logger
-votelogger = S3VoteLoggingClass()
+#votelogger = S3VoteLoggingClass()
 
 def get_vote_from_string(incoming_message):
     if 'cause' in incoming_message or 'Cause' in incoming_message:
@@ -160,9 +160,11 @@ def api_is_voting_started():
 # TODO, put it on the custom domain you bought
 # TODO, some kind of deployment scripts? put the html in a static bucket
 # TODO, test 50 votes in 2 seconds, does it work
+# TODO, test jessie mode or move it to the frontend
+# TODO, some UI to change the names and numbers?
 # TODO, when the timer is over. Show a BIG STOP SIGN and start playing music louder and louder
 # TODO, when reloading in a vote, the other ui elements come back
-# TODO add type checking
+# TODO, add type checking
 # TODO, change to REACT to make fluid
 # TODO, unit tests bro 
 # TODO, admin tool? With Login? to change the list of users and numbers?

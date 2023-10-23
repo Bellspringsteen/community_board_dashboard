@@ -6,7 +6,7 @@ from VoterClass import Voter
 from VoteClass import Vote
 from VoteOptionsEnum import VoteOptions
 from twilio.twiml.messaging_response import MessagingResponse
-from VoteLoggingClass import LocalVoteLoggingClass
+from VoteLoggingClass import LocalVoteLoggingClass, S3VoteLoggingClass
 
 INSTRUCTIONS_MESSAGE = ' Welcome to CB7 text message voting. text yes to vote yes, no to vote no, abstain to vote abstain, cause to vote cause. '
 INVALID_INPUT_MESSAGE = 'Your vote was NOT RECORDED, your message was invalid. '
@@ -25,7 +25,10 @@ persister.load_members()
 
 
 # Local Vote Logger
-votelogger = LocalVoteLoggingClass()
+#votelogger = LocalVoteLoggingClass()
+
+# S3 Vote Logger
+votelogger = S3VoteLoggingClass()
 
 def get_vote_from_string(incoming_message):
     if 'cause' in incoming_message or 'Cause' in incoming_message:
@@ -144,7 +147,7 @@ def api_start_voting(title):
     persister.set_currently_in_a_voting_session(True)
 
 def api_stop_voting():
-    votelogger.log_vote_summary_to_file(get_summary())
+    votelogger.log_vote_summary_to_file(current_vote_name=persister.get_current_vote_name(),summary=get_summary())
     persister.set_current_vote_name('')
     persister.set_currently_in_a_voting_session(False)
     persister.clear_vote_log()
@@ -152,11 +155,11 @@ def api_stop_voting():
 def api_is_voting_started():
     return {"isVotingStarted": persister.get_currently_in_a_voting_session(),"currentVoteName":persister.get_current_vote_name()}
 
-# TODO refactor all the logging vote class, and then allow for logging to S3 or local
 # TODO, dont just pass on exceptions, got to do something there
 # TODO, some kind of simple password. Window.alert? Pass it in a header? For the twilio, i think your going to have to pass it in the url parameters
 # TODO, put it on the custom domain you bought
 # TODO, some kind of deployment scripts? put the html in a static bucket
+# TODO, test 50 votes in 2 seconds, does it work
 # TODO, when the timer is over. Show a BIG STOP SIGN and start playing music louder and louder
 # TODO, when reloading in a vote, the other ui elements come back
 # TODO add type checking

@@ -225,17 +225,22 @@
         let timerInterval
         let lastFetchTime = Date.now();
         let currentVoteName = ''
+        let server_url = 'http://127.0.0.1:5000'
+        //let server_url = 'https://jrkve800qh.execute-api.us-east-1.amazonaws.com'
 
         function checkVotingStatus() {
-            fetch('http://127.0.0.1:5000/isvotingstarted')
+            fetch(server_url+'/isvotingstarted')
                 .then(response => response.json())
                 .then(data => {
-                    if (data.isVotingStarted === true) {
+                    
+                    returned_value = data['body']
+
+                    if (returned_value.isVotingStarted === true) {
                         votingStarted = true;
                     } else {
                         votingStarted = false;
                     }
-                    currentVoteName = data.currentVoteName;
+                    currentVoteName = returned_value.currentVoteName;
                     document.getElementById("votingTitleInput").value = currentVoteName;
                     refreshVotingVisibility()
                 })
@@ -299,11 +304,12 @@
 
         function updateResults(data) {
             lastFetchTime = Date.now();
+            returned_value = JSON.parse(data['body'])
 
-            const yesCount = data["Yes"].length;
-            const noCount = data["No"].length;
-            const abstainCount = data["Abstain"].length;
-            const causeCount = data["Abstaining for Cause"].length;
+            const yesCount = returned_value["Yes"].length;
+            const noCount = returned_value["No"].length;
+            const abstainCount = returned_value["Abstain"].length;
+            const causeCount = returned_value["Abstaining for Cause"].length;
 
             document.getElementById("yesCount").textContent = yesCount;
             document.getElementById("noCount").textContent = noCount;
@@ -313,7 +319,7 @@
             const voteLog = document.getElementById("voteLog");
             voteLog.innerHTML = '';
             for (const vote_selected of ["Yes","No","Abstain","Abstaining for Cause"]){
-                for (const vote of data[vote_selected]) {
+                for (const vote of returned_value[vote_selected]) {
                     const li = document.createElement("li");
                     li.textContent = `${vote.voter}- `+ vote_selected;
                     voteLog.appendChild(li);
@@ -324,7 +330,7 @@
 
         function fetchResults() {
             updateSecondsSinceUpdate();
-            fetch("http://127.0.0.1:5000/results")
+            fetch(server_url+'/results')
                 .then(response => response.json())
                 .then(data => updateResults(data))
                 .catch(error => console.error(error));
@@ -338,7 +344,7 @@
                     title: titleInput,
                 };
 
-                fetch('http://127.0.0.1:5000/startvoting', {
+                fetch(server_url+'/startvoting', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -371,7 +377,7 @@
         }
 
         function stopVoting() {
-            fetch('http://127.0.0.1:5000/stopvoting', {
+            fetch(server_url+'/stopvoting', {
                 method: 'POST',
             })
             .then(response => {

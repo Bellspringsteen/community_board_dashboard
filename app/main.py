@@ -133,7 +133,15 @@ def api_get_results():
     custom_encoder = lambda obj: obj.value if isinstance(obj, Enum) else obj #TODO , shouldnt this be apart of the class
     summary = summarize_votes()
     converted_summary = {custom_encoder(key): value for key, value in summary.items()}
-    return json.dumps(converted_summary)
+    response = {
+        "statusCode": 200,
+        "headers": {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*"
+        },
+        "body": json.dumps(converted_summary)
+    }
+    return response
 
 
 def api_testing():
@@ -153,7 +161,15 @@ def api_stop_voting():
     persister.clear_vote_log()
 
 def api_is_voting_started():
-    return {"isVotingStarted": persister.get_currently_in_a_voting_session(),"currentVoteName":persister.get_current_vote_name()}
+    response = {
+        "statusCode": 200,
+        "headers": {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*"
+        },
+        "body": {"isVotingStarted": persister.get_currently_in_a_voting_session(),"currentVoteName":persister.get_current_vote_name()}
+    }
+    return response
 
 # TODO, dont just pass on exceptions, got to do something there
 # TODO, some kind of simple password. Window.alert? Pass it in a header? For the twilio, i think your going to have to pass it in the url parameters
@@ -168,3 +184,5 @@ def api_is_voting_started():
 # TODO, change to REACT to make fluid
 # TODO, unit tests bro 
 # TODO, admin tool? With Login? to change the list of users and numbers?
+
+# https://jrkve800qh.execute-api.us-east-1.amazonaws.com/startvoting

@@ -166,7 +166,7 @@ class PersisterGlobalVariables(Persister):
     Persister implementation using Global Variables
     '''
 
-    file_path = './members.csv'
+    file_path = '../members.csv'
 
     def __init__(self, use_db=False):
         self.use_db = use_db

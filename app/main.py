@@ -19,8 +19,8 @@ JESSIE_MODE_BUT_FAILED = 'You are in Jessie mode, but the query failed'
 JESSIE_MODE_NUMBER = '+1646740645011'
 
 
-persister = PersisterS3()
-#persister.load_members() # only have to run this if the 
+persister = PersisterGlobalVariables()
+persister.load_members() # only have to run this if the 
 
 def get_vote_from_string(incoming_message):
     if 'cause' in incoming_message or 'Cause' in incoming_message:

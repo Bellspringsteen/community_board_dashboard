@@ -19,8 +19,8 @@ JESSIE_MODE_BUT_FAILED = 'You are in Jessie mode, but the query failed'
 JESSIE_MODE_NUMBER = '+1646740645011'
 
 
-persister = PersisterGlobalVariables()
-persister.load_members() # only have to run this if the 
+persister = PersisterS3()
+#persister.load_members() # only have to run this if the 
 
 def get_vote_from_string(incoming_message):
     if 'cause' in incoming_message or 'Cause' in incoming_message:
@@ -170,8 +170,9 @@ def api_is_voting_started():
 # TODO refactor all the incoming web calls into a seperate class 
 # TODO refactor all the logging vote class, and then allow for logging to S3 or local
 # TODO, dont just pass on exceptions, got to do something there
-# TODO, some kind of simple password. Window.alert? Pass it in a header?
-# TODO, some kind of deployment scripts?
+# TODO, some kind of simple password. Window.alert? Pass it in a header? For the twilio, i think your going to have to pass it in the url parameters
+# TODO, put it on the custom domain you bought
+# TODO, some kind of deployment scripts? put the html in a static bucket
 # TODO add type checking
 # TODO, when the timer is over. Show a BIG STOP SIGN and start playing music louder and louder
 # TODO, when reloading in a vote, the other ui elements come back

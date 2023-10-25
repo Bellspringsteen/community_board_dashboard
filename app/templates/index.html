@@ -226,13 +226,12 @@
         let lastFetchTime = Date.now();
         let currentVoteName = ''
         let server_url = 'http://127.0.0.1:5000'
-        //let server_url = 'https://jrkve800qh.execute-api.us-east-1.amazonaws.com'
+        //let server_url = 'https://jrkve800qh.execute-api.us-east-1.amazonaws.com/default' 
 
         function checkVotingStatus() {
             fetch(server_url+'/isvotingstarted')
                 .then(response => response.json())
                 .then(data => {
-                    
                     returned_value = data['body']
 
                     if (returned_value.isVotingStarted === true) {

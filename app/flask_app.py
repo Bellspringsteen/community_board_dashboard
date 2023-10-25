@@ -3,10 +3,13 @@ from flask import Flask, request, render_template,jsonify
 from main import * 
 app = Flask('Voting')
 
-@app.route('/', methods=['POST'])
+@app.route('/incomingtext', methods=['POST'])
 def incoming_text():
-    incoming_msg = request.values['Body']
-    incoming_number = request.values['From']
+    #incoming_msg = request.values['Body']
+    #incoming_number = request.values['From']
+    test = create_response_msg('TEST')
+    print(test)
+    return create_response_msg('TEST')
     return parse_incoming_text(incoming_number,incoming_msg)
     
 
@@ -59,4 +62,4 @@ def stopvoting():
 
 @app.route('/isvotingstarted', methods=['GET'])
 def is_voting_started():
-    return jsonify(api_is_voting_started())
+    return json.dumps(api_is_voting_started())

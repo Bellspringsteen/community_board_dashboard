@@ -17,18 +17,18 @@ JESSIE_MODE_BUT_FAILED = 'You are in Jessie mode, but the query failed'
 JESSIE_MODE_NUMBER = '+1646740645011'
 
 # S3 Persister
-#persister = PersisterS3()
+persister = PersisterS3()
 
 # Local Persister
-persister= PersisterGlobalVariables()
-persister.load_members() 
+#persister= PersisterGlobalVariables()
+#persister.load_members() 
 
 
 # Local Vote Logger
-votelogger = LocalVoteLoggingClass()
+#votelogger = LocalVoteLoggingClass()
 
 # S3 Vote Logger
-#votelogger = S3VoteLoggingClass()
+votelogger = S3VoteLoggingClass()
 
 def get_vote_from_string(incoming_message):
     if 'cause' in incoming_message or 'Cause' in incoming_message:
@@ -165,7 +165,6 @@ def api_is_voting_started():
         "statusCode": 200,
         "headers": {
             "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*"
         },
         "body": {"isVotingStarted": persister.get_currently_in_a_voting_session(),"currentVoteName":persister.get_current_vote_name()}
     }
@@ -173,8 +172,8 @@ def api_is_voting_started():
 
 # TODO, dont just pass on exceptions, got to do something there
 # TODO, some kind of simple password. Window.alert? Pass it in a header? For the twilio, i think your going to have to pass it in the url parameters
-# TODO, put it on the custom domain you bought
 # TODO, some kind of deployment scripts? put the html in a static bucket
+# TODO, put it on the custom domain you bought
 # TODO, test 50 votes in 2 seconds, does it work
 # TODO, test jessie mode or move it to the frontend
 # TODO, some UI to change the names and numbers?
@@ -185,4 +184,5 @@ def api_is_voting_started():
 # TODO, unit tests bro 
 # TODO, admin tool? With Login? to change the list of users and numbers?
 
-# https://jrkve800qh.execute-api.us-east-1.amazonaws.com/startvoting
+# https://jrkve800qh.execute-api.us-east-1.amazonaws.com/default/webresults
+# https://jrkve800qh.execute-api.us-east-1.amazonaws.com/default/incomingtext

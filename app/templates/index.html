@@ -227,9 +227,25 @@
         let currentVoteName = ''
         let server_url = 'http://127.0.0.1:5000'
         //let server_url = 'https://jrkve800qh.execute-api.us-east-1.amazonaws.com/default' 
+        let auth_key = null
+
+        window.onload = function () {
+            getPassword();
+        };
+
+        function getPassword() {
+            const password = prompt("Enter Password:");
+            auth_key = password
+        }
 
         function checkVotingStatus() {
-            fetch(server_url+'/isvotingstarted')
+            fetch(server_url+'/isvotingstarted', {
+                    method: 'GET',
+                    headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': auth_key,
+                    },
+                })
                 .then(response => response.json())
                 .then(data => {
                     returned_value = data['body']
@@ -329,7 +345,13 @@
 
         function fetchResults() {
             updateSecondsSinceUpdate();
-            fetch(server_url+'/results')
+            fetch(server_url+'/results', {
+                    method: 'GET',
+                    headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': auth_key,
+                    },
+                })
                 .then(response => response.json())
                 .then(data => updateResults(data))
                 .catch(error => console.error(error));
@@ -342,11 +364,11 @@
                 const payload = {
                     title: titleInput,
                 };
-
                 fetch(server_url+'/startvoting', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'x-api-key': auth_key,
                     },
                     body: JSON.stringify(payload),
                 })
@@ -378,6 +400,10 @@
         function stopVoting() {
             fetch(server_url+'/stopvoting', {
                 method: 'POST',
+                headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': auth_key,
+                    },
             })
             .then(response => {
                 if (response.status === 200) {

@@ -170,15 +170,17 @@ def api_is_voting_started():
     }
     return response
 
-# TODO, dont just pass on exceptions, got to do something there
-# TODO, some kind of simple password. Window.alert? Pass it in a header? For the twilio, i think your going to have to pass it in the url parameters
 # TODO, some kind of deployment scripts? put the html in a static bucket
-# TODO, put it on the custom domain you bought
-# TODO, test 50 votes in 2 seconds, does it work
+# TODO, test 50 votes in 2 seconds, does it work. With authentication. update the /testing. Its not currently authed. 
 # TODO, test jessie mode or move it to the frontend
-# TODO, some UI to change the names and numbers?
 # TODO, when the timer is over. Show a BIG STOP SIGN and start playing music louder and louder
 # TODO, when reloading in a vote, the other ui elements come back
+
+# NOV7 meeting
+# TODO, if failing because not authorized, show that.
+# TODO, dont just pass on exceptions, got to do something there
+# TODO, put it on the custom domain you bought
+# TODO, some UI to change the names and numbers?
 # TODO, add type checking
 # TODO, change to REACT to make fluid
 # TODO, unit tests bro 

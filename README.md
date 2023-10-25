@@ -7,6 +7,7 @@ flask run --reload
 ngrok http 500
 Take the ngrok and put it in the TWillio Phone Number page
 
+export API_KEY=auth-key-value
 
 # run it custom
 
@@ -41,4 +42,7 @@ Click "Create" to create the Lambda layer.
 aws lambda add-permission --function-name CBFunction --statement-id apigateway-invoke-permissions --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:us-east-1:212905216651:jrkve800qh/default/GET/test"
 
 
-# TODO, remove the logging thing you created
+# AUTH
+
+* For twilio, a parameter is added to the url string in twilio config
+* For lambda and local flask, environment variable is being checked vs x-api-key

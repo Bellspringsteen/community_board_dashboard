@@ -3,18 +3,15 @@ from main import *
 import base64
 from urllib.parse import parse_qs
 
-# Define your authentication key
-AUTHENTICATION_KEY = 'your-auth-key'
-
+import os
 import boto3
 
 s3 = boto3.client('s3')
+API_KEY = os.environ.get('API_KEY')
+TWILIO_API_KEY = os.environ.get('TWILIO_API_KEY')
 
 def lambda_handler(event, context):
-    if True or 'headers' in event and 'x-api-key' in event['headers'] and event['headers']['x-api-key'] == AUTHENTICATION_KEY:
-        # Authentication key is valid
-        if event['requestContext']['http']['method'] == 'POST':
-            if event['rawPath'] == '/default/incomingtext':
+    if event['rawPath'] == '/default/incomingtext' and event['rawQueryString'] == 'auth='+TWILIO_API_KEY:
                 body = event['body']
                 decoded_body = base64.b64decode(body).decode('utf-8')
                 query_params = parse_qs(decoded_body)
@@ -27,7 +24,10 @@ def lambda_handler(event, context):
                        'Content-Type': 'application/xml'
                    }
                 }
-            elif event['rawPath'] == '/default/startvoting':
+    if 'headers' in event and 'x-api-key' in event['headers'] and event['headers']['x-api-key'] == API_KEY:
+        # Authentication key is valid
+        if event['requestContext']['http']['method'] == 'POST':
+            if event['rawPath'] == '/default/startvoting':
                 if true_if_members_list_zero():
                     response = {
                         'error': 'Internal Server Error',

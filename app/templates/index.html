@@ -225,8 +225,8 @@
         let timerInterval
         let lastFetchTime = Date.now();
         let currentVoteName = ''
-        //let server_url = 'http://127.0.0.1:5000'
-        let server_url = 'https://jrkve800qh.execute-api.us-east-1.amazonaws.com/default' 
+        let server_url = 'http://127.0.0.1:5000'
+        //let server_url = 'https://jrkve800qh.execute-api.us-east-1.amazonaws.com/default' 
         let auth_key = null
 
         window.onload = function () {
@@ -449,9 +449,12 @@
                 document.getElementById("results").style.display = "block";
                 startFetchResults()
                 document.getElementById("voteTitle").textContent = `Results of Vote - ${currentVoteName}`;
+                document.getElementById("right-section").style.display = "none";
+                document.getElementById("left-section").style.width = '45%';
             } else {
                 document.getElementById("results").style.display = "none";
                 document.getElementById("votingControls").style.display = "block";
+                document.getElementById("right-section").style.display = "block";
             }
         }
 

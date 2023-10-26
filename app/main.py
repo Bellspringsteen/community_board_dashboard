@@ -17,19 +17,19 @@ JESSIE_MODE_BUT_FAILED = 'You are in Jessie mode, but the query failed'
 JESSIE_MODE_NUMBER = '+1646740645011'
 
 # S3 Persister
-persister = PersisterS3()
+#persister = PersisterS3()
 #persister.load_members() # ONly run the first time
 
 # Local Persister
-#persister= PersisterGlobalVariables()
-#persister.load_members() 
+persister= PersisterGlobalVariables()
+persister.load_members() 
 
 
 # Local Vote Logger
-#votelogger = LocalVoteLoggingClass()
+votelogger = LocalVoteLoggingClass()
 
 # S3 Vote Logger
-votelogger = S3VoteLoggingClass()
+#votelogger = S3VoteLoggingClass()
 
 def get_vote_from_string(incoming_message):
     if 'cause' in incoming_message or 'Cause' in incoming_message:
@@ -170,7 +170,6 @@ def api_is_voting_started():
 
 # TODO, test jessie mode or move it to the frontend
 # TODO, when the timer is over. Show a BIG STOP SIGN and start playing music louder and louder
-# TODO, when reloading in a vote, the other ui elements come back
 # TODO, stop voting takes a while
 
 # NOV7 meeting

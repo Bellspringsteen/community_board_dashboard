@@ -41,7 +41,7 @@ def lambda_handler(event, context):
                 title = data.get('title', None)
                 api_start_voting(title=title)
                 return get_ok()
-            elif event['rawPath'] == '/default/testing':
+            elif event['rawPath'] == '/default/manualentry':
                 body = event['body']
                 data = json.loads(body)
                 print(str(data))

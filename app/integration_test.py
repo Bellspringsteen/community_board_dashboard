@@ -13,7 +13,7 @@ API_KEY = os.environ.get('API_KEY')
 
 
 # Update with your Lambda URL and Twilio API key
-LAMBDA_URL = "https://jrkve800qh.execute-api.us-east-1.amazonaws.com/default/testing"
+LAMBDA_URL = "https://jrkve800qh.execute-api.us-east-1.amazonaws.com/default/manualentry"
 persister = PersisterGlobalVariables()
 persister.load_members()
 members = persister.get_members()

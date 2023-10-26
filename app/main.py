@@ -26,10 +26,10 @@ persister = PersisterS3()
 
 
 # Local Vote Logger
-votelogger = LocalVoteLoggingClass()
+#votelogger = LocalVoteLoggingClass()
 
 # S3 Vote Logger
-#votelogger = S3VoteLoggingClass()
+votelogger = S3VoteLoggingClass()
 
 def get_vote_from_string(incoming_message):
     if 'cause' in incoming_message or 'Cause' in incoming_message:

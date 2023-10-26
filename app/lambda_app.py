@@ -11,6 +11,7 @@ API_KEY = os.environ.get('API_KEY')
 TWILIO_API_KEY = os.environ.get('TWILIO_API_KEY')
 
 def lambda_handler(event, context):
+    print(str(event))
     if event['rawPath'] == '/default/webresults':
         return get_html_page()
     if event['rawPath'] == '/default/incomingtext' and event['rawQueryString'] == 'auth='+TWILIO_API_KEY:
@@ -42,11 +43,12 @@ def lambda_handler(event, context):
                 api_start_voting(title=title)
                 return get_ok()
             elif event['rawPath'] == '/default/manualentry':
+                print('ALEX'+str(event))
                 body = event['body']
                 data = json.loads(body)
                 print(str(data))
-                number_sms = data.get('number_sms', None)
-                vote_to_send = data.get('vote_to_send', None)
+                number_sms = data['number_sms']
+                vote_to_send = data['vote_to_send']
                 return api_testing(number_sms,vote_to_send)
             elif event['rawPath'] == '/default/stopvoting':
                 return api_stop_voting()

@@ -11,9 +11,9 @@ import concurrent.futures
 
 API_KEY = os.environ.get('API_KEY')
 
-
 # Update with your Lambda URL and Twilio API key
-LAMBDA_URL = "http://127.0.0.1:5000/manualentry"# "https://jrkve800qh.execute-api.us-east-1.amazonaws.com/default/manualentry"
+LAMBDA_URL = "https://jrkve800qh.execute-api.us-east-1.amazonaws.com/default/manualentry"
+#LAMBDA_URL = "http://127.0.0.1:5000/manualentry"
 persister = PersisterGlobalVariables()
 persister.load_members()
 members = persister.get_members()
@@ -37,14 +37,13 @@ def test_send_votes_to_lambda():
 
 def send_vote_request(number_sms, vote_to_send):
     headers = {
-    "Content-Type": "application/json",
-    "x-api-key": API_KEY,  # Add the x-api-key header here
+        "Content-Type": "application/json",
+        "x-api-key": API_KEY,  # Add the x-api-key header here
     }
     data = {
             "number_sms": number_sms,
             "vote_to_send": vote_to_send,
     }
-
 
     response = requests.post(LAMBDA_URL, headers=headers, data=json.dumps(data))
     # Ensure the response is as expected

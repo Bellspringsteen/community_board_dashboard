@@ -1,6 +1,6 @@
 # Run it all local
 
-change the persister to Global Variable
+change the persister to Global Variable and the Logger
 export FLASK_APP=flask_app.py
 cd /app
 flask run --reload
@@ -9,19 +9,15 @@ Take the ngrok and put it in the TWillio Phone Number page
 
 export API_KEY=auth-key-value
 
-# run it custom
 
-
-# run it hosted
-change the persister to PersisterS3
-
+# deploy hosted
+sh deploy_lambda.sh 
 
 
 # AWS Setup
 
-API Gateway?
-Lambda?
-What did i do for sleepy baby?
+API Gateway - setup endpoints
+Lambda - create with the attached script, comment out the create
 
 
 # create the twilio_layer
@@ -39,7 +35,8 @@ Choose a compatible runtime (e.g., Python 3.8 or the runtime you intend to use).
 Click "Create" to create the Lambda layer.
 
 # Lambda permissions
-aws lambda add-permission --function-name CBFunction --statement-id apigateway-invoke-permissions --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:us-east-1:212905216651:jrkve800qh/default/GET/test"
+aws lambda add-permission --function-name CBFunction --statement-id apigateway-invoke-permissions --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:us-east-1:accound:lambda/default/GET/test"
+
 
 
 # AUTH

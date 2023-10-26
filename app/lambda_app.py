@@ -11,19 +11,21 @@ API_KEY = os.environ.get('API_KEY')
 TWILIO_API_KEY = os.environ.get('TWILIO_API_KEY')
 
 def lambda_handler(event, context):
+    if event['rawPath'] == '/default/webresults':
+        return get_html_page()
     if event['rawPath'] == '/default/incomingtext' and event['rawQueryString'] == 'auth='+TWILIO_API_KEY:
-                body = event['body']
-                decoded_body = base64.b64decode(body).decode('utf-8')
-                query_params = parse_qs(decoded_body)
-                incoming_msg = query_params.get('Body', [''])[0]
-                incoming_number = query_params.get('From', [''])[0]
-                return {
-                   'body': str(parse_incoming_text(incoming_number,incoming_msg)),
-                   'statusCode': 200,
-                   'headers': {
-                       'Content-Type': 'application/xml'
-                   }
-                }
+        body = event['body']
+        decoded_body = base64.b64decode(body).decode('utf-8')
+        query_params = parse_qs(decoded_body)
+        incoming_msg = query_params.get('Body', [''])[0]
+        incoming_number = query_params.get('From', [''])[0]
+        return {
+            'body': str(parse_incoming_text(incoming_number,incoming_msg)),
+            'statusCode': 200,
+            'headers': {
+                'Content-Type': 'application/xml'
+            }
+        }
     if 'headers' in event and 'x-api-key' in event['headers'] and event['headers']['x-api-key'] == API_KEY:
         # Authentication key is valid
         if event['requestContext']['http']['method'] == 'POST':
@@ -39,15 +41,18 @@ def lambda_handler(event, context):
                 title = data.get('title', None)
                 api_start_voting(title=title)
                 return get_ok()
+            elif event['rawPath'] == '/default/testing':
+                body = event['body']
+                data = json.loads(body)
+                print(str(data))
+                number_sms = data.get('number_sms', None)
+                vote_to_send = data.get('vote_to_send', None)
+                return api_testing(number_sms,vote_to_send)
             elif event['rawPath'] == '/default/stopvoting':
                 return api_stop_voting()
         elif event['requestContext']['http']['method']== 'GET':
             if event['rawPath'] == '/default/results':
                 return api_get_results()
-            elif event['rawPath'] == '/default/webresults':
-                return get_html_page()
-            elif event['rawPath'] == '/default/testing':
-                return api_testing()
             elif event['rawPath'] == '/default/isvotingstarted':
                 return json.dumps(api_is_voting_started())
         else:
@@ -74,12 +79,12 @@ def get_ok():
     return response
     
 def get_html_page():
-    bucket_name = 'cb-dashboard-data-store'
-    html_file_key = 'index.html'
+# Define the path to the HTML file within your Lambda package
+    html_file_path = os.path.join(os.path.dirname(__file__), 'templates', 'index.html')
 
-    # Retrieve the HTML content from S3
-    response = s3.get_object(Bucket=bucket_name, Key=html_file_key)
-    html_content = response['Body'].read().decode('utf-8')
+    # Read the HTML content from the file
+    with open(html_file_path, 'r') as html_file:
+        html_content = html_file.read()
 
     # Construct an HTTP response
     response = {
@@ -91,3 +96,6 @@ def get_html_page():
     }
 
     return response
+
+
+

@@ -144,11 +144,8 @@ def api_get_results():
     return response
 
 
-def api_testing():
-    members = persister.get_members()
-    for voter in members.items():
-        random_vote = random.choice([VoteOptions.YES.value, VoteOptions.NO.value, VoteOptions.CAUSE.value,VoteOptions.ABSTAIN.value])
-        parse_incoming_text(voter[0], random_vote)
+def api_testing(number_sms,vote_to_send):
+    return parse_incoming_text(number_sms, vote_to_send)
 
 def api_start_voting(title):
     persister.set_current_vote_name(title)
@@ -170,7 +167,8 @@ def api_is_voting_started():
     }
     return response
 
-# TODO, some kind of deployment scripts? put the html in a static bucket
+# TODO, refreshing page 401 is broken
+# TODO, ugh oh, S3 persist, bad, got to break up into updating keys.
 # TODO, test 50 votes in 2 seconds, does it work. With authentication. update the /testing. Its not currently authed. 
 # TODO, test jessie mode or move it to the frontend
 # TODO, when the timer is over. Show a BIG STOP SIGN and start playing music louder and louder

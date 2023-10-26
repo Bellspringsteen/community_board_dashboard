@@ -32,27 +32,30 @@ def results():
 def webresults():
    return render_template('./index.html')
 
-@app.route('/testing', methods=['GET'])
+@app.route('/manualentry', methods=['POST'])
 def testing():
-    api_testing()
-    return 'OK'
-
+    data = request.get_json()
+    number_sms = data['number_sms']
+    vote_to_send = data['vote_to_send']
+    return api_testing(number_sms,vote_to_send)
+    
 @app.route('/startvoting', methods=['POST'])
 @require_auth_key
 def startvoting():
     try:
         if true_if_members_list_zero():
+            print('Member list is zero')
             response = {
                 'error': 'Internal Server Error',
                 'message': 'Member list is zero',
             }
             return jsonify(response), 500 
-    
         data = request.get_json()
         title = data.get('title')
         api_start_voting(title=title)
         return 'OK'  
     except Exception as e:
+        print(e)
         response = {
             'error': 'Internal Server Error',
             'message': 'Couldnt start voting',

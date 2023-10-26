@@ -13,7 +13,7 @@ API_KEY = os.environ.get('API_KEY')
 
 
 # Update with your Lambda URL and Twilio API key
-LAMBDA_URL = "https://jrkve800qh.execute-api.us-east-1.amazonaws.com/default/manualentry"
+LAMBDA_URL = "http://127.0.0.1:5000/manualentry"# "https://jrkve800qh.execute-api.us-east-1.amazonaws.com/default/manualentry"
 persister = PersisterGlobalVariables()
 persister.load_members()
 members = persister.get_members()
@@ -22,7 +22,6 @@ def test_send_votes_to_lambda():
     # Start the timer
     max_threads = 50
 
-        
     # Create a thread pool executor
     with concurrent.futures.ThreadPoolExecutor(max_threads) as executor:
         start_time = time.time()
@@ -30,7 +29,7 @@ def test_send_votes_to_lambda():
         number_to_send_values = members.keys()
 
         # Create a list of futures for sending requests
-        futures = [executor.submit(send_vote_request, number_to_send,"YES") for number_to_send in number_to_send_values]
+        futures = [executor.submit(send_vote_request, number_to_send,"Yes") for number_to_send in number_to_send_values]
 
         # Calculate the elapsed time
         elapsed_time = time.time() - start_time
@@ -53,5 +52,5 @@ def send_vote_request(number_sms, vote_to_send):
     print(response.text)
 
 if __name__ == "__main__":
-    send_vote_request('+19178418243','Yes')
-    #test_send_votes_to_lambda()
+    #send_vote_request('+19178418243','Yes')
+    test_send_votes_to_lambda()

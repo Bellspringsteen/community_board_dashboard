@@ -45,50 +45,64 @@ class PersisterS3(Persister):
     Persister implementation using Amazon S3
     '''
 
-    file_path = './members.csv'  # TODO this is just for the first launch, remove this
+    file_path = '../members.csv'  # TODO this is just for the first launch, remove this
 
     def __init__(self):
         super().__init__()
         self.s3_resource = boto3.resource('s3')
+        self.s3 =  boto3.client('s3')
         self.bucket_name = 'cb-dashboard-data-store'
         self.vote_log_key = 'vote_log.json'
         self.current_vote_name_key = 'current_vote_name.json'
         self.currently_in_a_voting_session_key = 'currently_in_a_voting_session.json'
         self.members_key = 'members.json'
+        self.vote_log_folder = 'vote_log'
 
     def get_vote_log(self) -> Dict[str, Vote]:
-    # Implement S3-based getter for vote_log
+        vote_logs = {}
+
+        response = self.s3.list_objects_v2(Bucket=self.bucket_name, Prefix=self.vote_log_folder+'/+')
+        for obj in response.get('Contents', []):
+            # Get the object key (file path)
+            object_key = obj['Key']
+
+            # Fetch the object's data
+            response = self.s3.get_object(Bucket=self.bucket_name, Key=object_key)
+            object_data = response['Body'].read().decode('utf-8')
+            # Load the object data as JSON
+            try:
+                data = json.loads(object_data)
+            except json.JSONDecodeError:
+                print(f"Error loading JSON for object: {object_key}")
+                continue
+
+            # Extract data and create the desired object structure
+            sms_number = object_key.split('/')[1]
+            name_to_set = data['voter']
+            vote_data = data['votes_vote']
+            if vote_data:
+                vote_logs[sms_number] = Vote(voter=Voter(name=name_to_set,sms_number=sms_number), voters_vote=VoteOptions(vote_data))
+        
+        return vote_logs
+        
+    def add_to_vote_log(self,key,value):
         try:
-            obj = self.s3_resource.Object(self.bucket_name, self.vote_log_key)
-            vote_log_json = obj.get()['Body'].read().decode('utf-8')
-            vote_log_data = json.loads(vote_log_json)
-
-            # Deserialize vote_log_data into Dict[str, Vote]
-            vote_log = {sms_number: Vote(voter=Voter(name=vote_data['voter'],sms_number=sms_number), voters_vote=VoteOptions(vote_data['votes_vote'])) for sms_number, vote_data in vote_log_data.items()}
-
-            return vote_log
-        except Exception as e:
-            # Handle any exceptions
-            return {}
-
-    def set_vote_log(self, value):
-        # Implement S3-based setter for vote_log
-        try:
-            obj = self.s3_resource.Object(self.bucket_name, self.vote_log_key)
-            value = {key: vote.toJSON() for key, vote in value.items()}
-            obj.put(Body=json.dumps(value))
+            obj = self.s3_resource.Object(self.bucket_name, self.vote_log_folder+'/'+value.voter.sms_number)
+            to_save = value.toJSON()
+            obj.put(Body=json.dumps(to_save))
         except Exception as e:
             # Handle any exceptions
             pass
 
-    def add_to_vote_log(self,key,value):
-        vote_log = self.get_vote_log()
-        vote_log[key] = value
-        self.set_vote_log(vote_log)
-
     def clear_vote_log(self):
-        vote_log = {}
-        self.set_vote_log(vote_log)
+        # List all objects in the bucket
+        objects = self.s3.list_objects_v2(Bucket=self.bucket_name,Prefix=self.vote_log_folder+'/+')
+
+        # Check if the bucket has any objects
+        if 'Contents' in objects:
+            for obj in objects['Contents']:
+                object_key = obj['Key']
+                self.s3.delete_object(Bucket=self.bucket_name, Key=object_key)
 
     def get_current_vote_name(self):
         # Implement S3-based getter for current_vote_name

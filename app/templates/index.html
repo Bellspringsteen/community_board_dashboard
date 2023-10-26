@@ -225,8 +225,8 @@
         let timerInterval
         let lastFetchTime = Date.now();
         let currentVoteName = ''
-        //let server_url = 'http://127.0.0.1:5000'
-        let server_url = 'https://jrkve800qh.execute-api.us-east-1.amazonaws.com/default' 
+        let server_url = 'http://127.0.0.1:5000'
+        //let server_url = 'https://jrkve800qh.execute-api.us-east-1.amazonaws.com/default' 
         let auth_key = null
 
         window.onload = function () {
@@ -236,6 +236,14 @@
         function getPassword() {
             const password = prompt("Enter Password:");
             auth_key = password
+
+            checkVotingStatus();
+
+            refreshVotingVisibility();
+
+            fetchResults();
+
+            updateTimerDisplay();
         }
 
         function checkVotingStatus() {
@@ -319,7 +327,7 @@
 
         function updateResults(data) {
             lastFetchTime = Date.now();
-            returned_value = data
+            returned_value = JSON.parse(data['body'])
 
             const yesCount = returned_value["Yes"].length;
             const noCount = returned_value["No"].length;
@@ -463,13 +471,7 @@
             const secondsSinceUpdate = Math.floor((currentTime - lastFetchTime) / 1000);
             document.getElementById("secondsSinceUpdate").textContent = secondsSinceUpdate;
         }
-        checkVotingStatus();
-
-        refreshVotingVisibility();
-
-        fetchResults();
-
-        updateTimerDisplay();
+        
     </script>
 </body>
 </html>

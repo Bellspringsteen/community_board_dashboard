@@ -168,9 +168,6 @@ def api_is_voting_started():
     }
     return response
 
-# TODO, when the timer is over. Show a BIG STOP SIGN and start playing music louder and louder
-# TODO, stop voting takes a while
-
 # NOV7 meeting
 # TODO, its unable to vote for cause or something like that
 # TODO, if failing because not authorized, show that.

@@ -37,9 +37,9 @@ Click "Create" to create the Lambda layer.
 # Lambda permissions
 aws lambda add-permission --function-name CBFunction --statement-id apigateway-invoke-permissions --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:us-east-1:accound:lambda/default/GET/test"
 
-
-
 # AUTH
-
 * For twilio, a parameter is added to the url string in twilio config
 * For lambda and local flask, environment variable is being checked vs x-api-key
+
+# python scrip to upload members.csv to s3 as members.json
+python3 uploadmembers.py

@@ -95,14 +95,26 @@ class PersisterS3(Persister):
             pass
 
     def clear_vote_log(self):
-        # List all objects in the bucket
-        objects = self.s3.list_objects_v2(Bucket=self.bucket_name,Prefix=self.vote_log_folder+'/+')
+        # List all objects with the specified prefix
+        objects = self.s3.list_objects_v2(Bucket=self.bucket_name, Prefix=self.vote_log_folder)
 
         # Check if the bucket has any objects
         if 'Contents' in objects:
-            for obj in objects['Contents']:
-                object_key = obj['Key']
-                self.s3.delete_object(Bucket=self.bucket_name, Key=object_key)
+            # Extract the object keys to be deleted
+            keys = [{'Key': obj['Key']} for obj in objects['Contents']]
+
+            # Delete the objects in batches for efficiency
+            chunk_size = 1000  # You can adjust the chunk size as needed
+            for i in range(0, len(keys), chunk_size):
+                response = self.s3.delete_objects(
+                    Bucket=self.bucket_name,
+                    Delete={'Objects': keys[i:i + chunk_size]}
+                )
+
+                # Check if any objects failed to delete
+                if 'Errors' in response:
+                    for error in response['Errors']:
+                        print(f"Error deleting object: {error['Key']} - {error['Message']}")
 
     def get_current_vote_name(self):
         # Implement S3-based getter for current_vote_name

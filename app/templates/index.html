@@ -108,6 +108,25 @@
             font-style: italic;
         }
 
+        #votingControlsContainer {
+        display: flex;
+        align-items: center;
+        }
+
+        #stopButton {
+            margin-right: 20px; /* Adjust the margin as needed for spacing */
+        }
+
+        #manualEntryContainer {
+            display: flex;
+            align-items: center;
+        }
+
+        #nameDropdown,
+        #voteDropdown {
+            margin-right: 10px; /* Adjust the margin as needed for spacing */
+        }
+
         .voting-controls {
             margin-top: 20px;
         }
@@ -169,7 +188,23 @@
                 <button onclick="startVoting()">Start Voting</button>
             </div>
             <div id="results" class="results">
-                <button id="stopButton" onclick="stopVoting()" style="display: none;">Stop Voting</button>
+                <div id="votingControlsContainer">
+                    <button id="stopButton" onclick="stopVoting()" style="display: none;">Stop Voting</button>
+                    <div id="manualEntryContainer">
+                        <select id="nameDropdown">
+                            <option value="">Select Name</option>
+                            <!-- Add names as options dynamically using JavaScript -->
+                        </select>
+                        <select id="voteDropdown">
+                            <option value="">Select Vote Option</option>
+                            <option value="Yes">Yes</option>
+                            <option value="No">No</option>
+                            <option value="Abstain">Abstain</option>
+                            <option value="Cause">Ineligible for Cause</option>
+                        </select>
+                        <button id="manualEntryButton" onclick="manualEntry()">Manual Entry</button>
+                    </div>
+                </div>
                 <h1 id="voteTitle">Results of Vote</h1>
                 <div class="vote-count">
                     <div class="result-item">
@@ -185,7 +220,7 @@
                         <span id="abstainCount">0</span>
                     </div>
                     <div class="result-item">
-                        <span class="label">Abstaining for Cause:</span>
+                        <span class="label">Ineligible for Cause:</span>
                         <span id="causeCount">0</span>
                     </div>
                 </div>
@@ -266,6 +301,8 @@
                     currentVoteName = returned_value.currentVoteName;
                     document.getElementById("votingTitleInput").value = currentVoteName;
                     refreshVotingVisibility()
+                    names = [{'name':'Blanche','number':'+1'},{'name':'Erana','number':'+2'}]
+                    updateNameDropdown(names)
                 })
                 .catch(error => {
                     console.error("Error checking voting status:", error);
@@ -337,7 +374,7 @@
             const yesCount = returned_value["Yes"].length;
             const noCount = returned_value["No"].length;
             const abstainCount = returned_value["Abstain"].length;
-            const causeCount = returned_value["Abstaining for Cause"].length;
+            const causeCount = returned_value["Ineligible for Cause"].length;
 
             document.getElementById("yesCount").textContent = yesCount;
             document.getElementById("noCount").textContent = noCount;
@@ -346,7 +383,7 @@
 
             const voteLog = document.getElementById("voteLog");
             voteLog.innerHTML = '';
-            for (const vote_selected of ["Yes","No","Abstain","Abstaining for Cause"]){
+            for (const vote_selected of ["Yes","No","Abstain","Ineligible for Cause"]){
                 for (const vote of returned_value[vote_selected]) {
                     const li = document.createElement("li");
                     li.textContent = `${vote.voter}- `+ vote_selected;
@@ -479,7 +516,66 @@
             const secondsSinceUpdate = Math.floor((currentTime - lastFetchTime) / 1000);
             document.getElementById("secondsSinceUpdate").textContent = secondsSinceUpdate;
         }
-        
+                
+                // Function to handle manual entry
+        function manualEntry() {
+            const nameDropdown = document.getElementById("nameDropdown");
+            const voteDropdown = document.getElementById("voteDropdown");
+
+            const selectedNameSMSNumber = nameDropdown.value;
+            const selectedVote = voteDropdown.value;
+
+            if (selectedNameSMSNumber && selectedVote) {
+                // Create a payload object with the selected name and vote
+                const payload = {
+                    number_sms: selectedNameSMSNumber,
+                    vote_to_send: selectedVote,
+                };
+
+                // Send a request to your server to process the manual entry
+                fetch(server_url + '/manualentry', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': auth_key,
+                    },
+                    body: JSON.stringify(payload),
+                })
+                    .then((response) => {
+                        if (response.status === 200) {
+                            // Manual entry was successful, update results
+                            alert("Success for manual entry")
+                        } else {
+                            alert("Failed to submit manual entry.");
+                        }
+                    })
+                    .catch((error) => {
+                        console.error("Error submitting manual entry:", error);
+                        alert("Failed to submit manual entry.");
+                    });
+
+                // Clear the selected values in the dropdowns
+                nameDropdown.value = "";
+                voteDropdown.value = "";
+            }
+        }
+
+        // Add event listeners to update the name dropdown (call this function to populate the names)
+        function updateNameDropdown(names) {
+            populateNameDropdown(names);
+        }
+
+        // Call this function to populate the name dropdown (modify as needed)
+        function populateNameDropdown(names) {
+            const nameDropdown = document.getElementById("nameDropdown");
+            nameDropdown.innerHTML = '<option value="">Select Name</option>';
+            names.forEach((name) => {
+                const option = document.createElement("option");
+                option.value = name['number'];
+                option.text = name['name'];
+                nameDropdown.appendChild(option);
+            });
+        }
     </script>
 </body>
 </html>

@@ -17,12 +17,12 @@ JESSIE_MODE_BUT_FAILED = 'You are in Jessie mode, but the query failed'
 JESSIE_MODE_NUMBER = '+1646740645011'
 
 # S3 Persister
-#persister = PersisterS3()
+persister = PersisterS3()
 #persister.load_members() # ONly run the first time
 
 # Local Persister
-persister= PersisterGlobalVariables()
-persister.load_members() 
+#persister= PersisterGlobalVariables()
+#persister.load_members() 
 
 
 # Local Vote Logger
@@ -168,13 +168,15 @@ def api_is_voting_started():
     }
     return response
 
-# TODO, test jessie mode or move it to the frontend
 # TODO, when the timer is over. Show a BIG STOP SIGN and start playing music louder and louder
 # TODO, stop voting takes a while
 
 # NOV7 meeting
+# TODO, its unable to vote for cause or something like that
 # TODO, if failing because not authorized, show that.
+# TODO, seperate webpage with the manual entry for those that are ok with that,url parameter with name of person. 
 # TODO, dont just pass on exceptions, got to do something there
+# TODO, change the alert input to ********
 # TODO, put it on the custom domain you bought
 # TODO, some UI to change the names and numbers?
 # TODO, add type checking

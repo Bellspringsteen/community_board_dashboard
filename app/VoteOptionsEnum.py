@@ -3,4 +3,4 @@ class VoteOptions(Enum):
     YES = 'Yes'
     NO = 'No'
     ABSTAIN = 'Abstain'
-    CAUSE = 'Abstaining for Cause'
+    CAUSE = 'Ineligible for Cause'

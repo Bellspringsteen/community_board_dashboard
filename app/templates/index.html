@@ -176,6 +176,24 @@
             padding: 20px;
         }
 
+        .warning-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(208, 255, 0, 0.9); /* Red background with some transparency */
+            display: none;
+            z-index: 999; /* Make sure it's above other elements */
+        }
+
+        .warning-message {
+            text-align: center;
+            font-size: 250px; /* Adjust the font size as needed */
+            color: white; /* White text color */
+            padding: 20px;
+        }
+
         ul {
             list-style: none;
             padding: 0;
@@ -265,9 +283,13 @@
             <div id="stopOverlay" class="stop-overlay" style="display: none">
                 <div id="stopMessage" class="stop-message">STOP</div>
             </div>
+
+            <div id="warningOverlay" class="warning-overlay" style="display: none">
+                <div id="warningMessage" class="warning-message">30 Seconds Left</div>
+            </div>
             
             <audio id="audioPlayer" style="display: none">
-                <source src="https://s3.amazonaws.com/www.labsbell.com/file_example_MP3_700KB.mp3" type="audio/mpeg">
+                <source src="https://s3.amazonaws.com/www.labsbell.com/cb_sound.mp3" type="audio/mpeg">
             </audio>
             <div class="queue">
                 <h2 id="queueDescription">Board Members Queue to Speak</h2>
@@ -293,9 +315,24 @@
             getPassword();
         };
 
+        function displayWarningMessage() {
+            const warningOverlay = document.getElementById("warningOverlay");
+            const warningMessage = document.getElementById("warningMessage");
+            warningOverlay.style.display = "block";
+
+            // Add a click event listener to the "STOP" message to stop the audio and reset the timer
+            warningMessage.addEventListener("click", function () {
+                warningOverlay.style.display = "none";
+            });
+        }
+
+
         function playAudioAndDisplayStopMessage() {
             // Play the audio
-            debugger
+            const warningOverlay = document.getElementById("warningOverlay");
+            warningOverlay.style.display = "none";
+
+
             const audioPlayer = document.getElementById("audioPlayer");
             audioPlayer.play();
 
@@ -346,7 +383,7 @@
                     currentVoteName = returned_value.currentVoteName;
                     document.getElementById("votingTitleInput").value = currentVoteName;
                     refreshVotingVisibility()
-                    names = [{'name':'Blanche','number':'+1'},{'name':'Erana','number':'+2'}]
+                    names = [{'name':'Blanche','number':'+1'}]
                     updateNameDropdown(names)
                 })
                 .catch(error => {
@@ -359,6 +396,8 @@
             const displayMinutes = Math.floor(totalSeconds / 60);
             const displaySeconds = totalSeconds % 60;
             document.getElementById("timerDisplay").textContent = `${displayMinutes.toString().padStart(2, '0')}:${displaySeconds.toString().padStart(2, '0')}`;
+            document.getElementById("warningMessage").textContent = `${displayMinutes.toString().padStart(2, '0')}:${displaySeconds.toString().padStart(2, '0')}`;
+
         }
 
         function setTimer() {
@@ -374,8 +413,10 @@
         function startTimer() {
             if (!timer) {
                 timer = setInterval(() => {
+                    if (totalSeconds === 30) {
+                        displayWarningMessage()
+                    }
                     if (totalSeconds === 0) {
-                        debugger
                         clearInterval(timer);
                         timer = null;
                         playAudioAndDisplayStopMessage(); // Call the function when the timer ends

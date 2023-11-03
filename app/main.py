@@ -9,7 +9,7 @@ from twilio.twiml.messaging_response import MessagingResponse
 from VoteLoggingClass import LocalVoteLoggingClass, S3VoteLoggingClass
 
 INSTRUCTIONS_MESSAGE = ' Welcome to CB7 text message voting. text yes to vote yes, no to vote no, abstain to vote abstain, cause to vote cause. '
-INVALID_INPUT_MESSAGE = 'Your vote was NOT RECORDED, your message was invalid. '
+INVALID_INPUT_MESSAGE = 'Your vote was NOT RECORDED, your message was invalid. The only valid inputs are yes, no, abstain, cause with no caps'
 NOT_VOTING_MESSAGE = 'Not currently open for voting'
 NOT_VALID_NUMBER_MESSAGE = 'We dont have a record of your number, tell Alex your name and this number'
 JESSIE_MODE_BUT_FAILED = 'You are in Jessie mode, but the query failed'
@@ -17,12 +17,12 @@ JESSIE_MODE_BUT_FAILED = 'You are in Jessie mode, but the query failed'
 JESSIE_MODE_NUMBER = '+1646740645011'
 
 # S3 Persister
-persister = PersisterS3()
+#persister = PersisterS3()
 #persister.load_members() # ONly run the first time
 
 # Local Persister
-#persister= PersisterGlobalVariables()
-#persister.load_members() 
+persister= PersisterGlobalVariables()
+persister.load_members() 
 
 
 # Local Vote Logger
@@ -32,13 +32,13 @@ votelogger = LocalVoteLoggingClass()
 #votelogger = S3VoteLoggingClass()
 
 def get_vote_from_string(incoming_message):
-    if 'cause' in incoming_message or 'Cause' in incoming_message:
+    if 'cause' in incoming_message or 'Cause' in incoming_message or 'CAUSE' in incoming_message:
         return VoteOptions.CAUSE
-    elif 'abstain' in incoming_message or 'Abstain' in incoming_message:
+    elif 'abstain' in incoming_message or 'Abstain' in incoming_message or 'ABSTAIN' in incoming_message:
         return VoteOptions.ABSTAIN
-    elif 'yes'in incoming_message or 'Yes' in incoming_message:
+    elif 'yes'in incoming_message or 'Yes' in incoming_message or 'YES' in incoming_message:
         return VoteOptions.YES
-    elif 'no' in incoming_message or 'No' in incoming_message:
+    elif 'no' in incoming_message or 'No' in incoming_message or 'NO' in incoming_message:
         return VoteOptions.NO
     else:
         return None 

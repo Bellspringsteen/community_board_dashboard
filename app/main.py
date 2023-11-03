@@ -14,7 +14,7 @@ NOT_VOTING_MESSAGE = 'Not currently open for voting'
 NOT_VALID_NUMBER_MESSAGE = 'We dont have a record of your number, tell Alex your name and this number'
 JESSIE_MODE_BUT_FAILED = 'You are in Jessie mode, but the query failed'
 
-JESSIE_MODE_NUMBER = '+1646740645011'
+JESSIE_MODE_NUMBER = '+1646740645011' # TODO REMOVE THIS
 
 # S3 Persister
 #persister = PersisterS3()

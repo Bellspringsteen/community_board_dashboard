@@ -17,19 +17,19 @@ JESSIE_MODE_BUT_FAILED = 'You are in Jessie mode, but the query failed'
 JESSIE_MODE_NUMBER = '+1646740645011' # TODO REMOVE THIS
 
 # S3 Persister
-persister = PersisterS3()
+#persister = PersisterS3()
 #persister.load_members() # ONly run the first time
 
 # Local Persister
-#persister= PersisterGlobalVariables()
-#persister.load_members() 
+persister= PersisterGlobalVariables()
+persister.load_members() 
 
 
 # Local Vote Logger
-#votelogger = LocalVoteLoggingClass()
+votelogger = LocalVoteLoggingClass()
 
 # S3 Vote Logger
-votelogger = S3VoteLoggingClass()
+#votelogger = S3VoteLoggingClass()
 
 def get_vote_from_string(incoming_message):
     if 'cause' in incoming_message or 'Cause' in incoming_message or 'CAUSE' in incoming_message:
@@ -167,6 +167,36 @@ def api_is_voting_started():
         "body": {"isVotingStarted": persister.get_currently_in_a_voting_session(),"currentVoteName":persister.get_current_vote_name()}
     }
     return response
+
+def api_export_votes(date):
+    try:
+        # Convert YYYY-MM-DD to YYYY_MM_DD format for file name
+        formatted_date = date.replace('-', '_')
+        file_name = f'vote_summary{formatted_date}.txt'
+        
+        
+        try:
+            file_content = persister.get_object(file_name)
+            print(file_content)
+            return file_content
+        except:
+            return {
+                "statusCode": 404,
+                "headers": {
+                    "Content-Type": "application/json",
+                },
+                "body": {'error': f'No vote summary found for {date}'}
+            }
+            
+    except Exception as e:
+        print(f"Error in api_export_votes: {str(e)}")
+        return {
+            "statusCode": 500,
+            "headers": {
+                "Content-Type": "application/json",
+            },
+            "body": {'error': 'Internal server error'}
+        }
 
 # NOV7 meeting
 # TODO, its unable to vote for cause or something like that

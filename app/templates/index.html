@@ -212,12 +212,91 @@
         #timerButtons {
             margin-top: 10px;
         }
+
+        .dropdown-menu {
+            min-width: 200px;
+        }
+        
+        .dropdown-item {
+            padding: 8px 20px;
+            cursor: pointer;
+        }
+        
+        .dropdown-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        /* Ensure the banner can handle the dropdown */
+        .banner-content {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+        }
+
+        /* Add these modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal-dialog {
+            position: relative;
+            width: 80%;
+            max-width: 800px;
+            margin: 50px auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .btn-close {
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 20px;
+        }
+
+        .modal-footer {
+            margin-top: 15px;
+            text-align: right;
+        }
+
+        .btn {
+            padding: 5px 15px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
     <div class="banner">
-        <p>Board Members, to begin interacting, text 'instructions' to 855-643-6695</p>
+        <div class="banner-content">
+            <p>Board Members, to begin interacting, text 'instructions' to 855-643-6695</p>            
+            
+            <!-- Simple export button -->
+            <button class="btn btn-sm btn-light" 
+                    onclick="exportVotes()" 
+                    style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%);">
+                Export Votes
+            </button>
+        </div>
     </div>
+
     <div class="container">
         <div id="left-section" class="left-section">
             <div class="container voting-controls" id="votingControls" style="display: none;">
@@ -299,7 +378,31 @@
         </div>
     </div>
 
-
+    <div id="exportModal" class="modal" tabindex="-1" style="display: none;">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Export Votes</h5>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="exportDate" class="form-label">Select Date</label>
+                        <input type="date" class="form-control" id="exportDate">
+                    </div>
+                    <div id="exportResults" style="display: none;">
+                        <h6>Vote Summary:</h6>
+                        <pre id="exportResultsContent" class="border p-3"></pre>
+                    </div>
+                    <div id="exportLoading" style="display: none;">
+                        Loading...
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" id="fetchVotesBtn">Fetch Votes</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script>
         let timer;
@@ -308,8 +411,8 @@
         let timerInterval
         let lastFetchTime = Date.now();
         let currentVoteName = ''
-        //let server_url = 'http://127.0.0.1:5000'
-        let server_url = 'https://jrkve800qh.execute-api.us-east-1.amazonaws.com/default' 
+        let server_url = 'http://127.0.0.1:5000'
+        //let server_url = 'https://jrkve800qh.execute-api.us-east-1.amazonaws.com/default' 
         let auth_key = null
 
         window.onload = function () {
@@ -384,7 +487,7 @@
                     currentVoteName = returned_value.currentVoteName;
                     document.getElementById("votingTitleInput").value = currentVoteName;
                     refreshVotingVisibility()
-                    names = [{'name':'Blanche','number':'+1'}]
+                    names = [{'name':'Blanche','number':'+1'},{'name':'Page','number':'+19174056332'},{'name':'Rhonda','number':'+13474765085'},{'name':'George','number':'+13476819729'},{'name':'Peter','number':'+19175438922'}]
                     updateNameDropdown(names)
                 })
                 .catch(error => {
@@ -586,6 +689,7 @@
             }
         }
 
+
         function startFetchResults() {
             // Clear any existing interval, if it's running
             stopFetchResults();
@@ -666,6 +770,64 @@
                 option.text = name['name'];
                 nameDropdown.appendChild(option);
             });
+        }
+
+        function exportVotes() {
+            const exportModal = document.getElementById('exportModal');
+            const exportResults = document.getElementById('exportResults');
+            const exportLoading = document.getElementById('exportLoading');
+            const exportDate = document.getElementById('exportDate');
+            const fetchVotesBtn = document.getElementById('fetchVotesBtn');
+            const exportResultsContent = document.getElementById('exportResultsContent');
+
+            // Reset and show modal
+            exportResults.style.display = 'none';
+            exportLoading.style.display = 'none';
+            exportDate.value = '';
+            exportModal.style.display = 'block';
+
+            // Handle fetch votes button click
+            fetchVotesBtn.onclick = async function() {
+                const date = exportDate.value;
+                if (!date) {
+                    alert('Please select a date');
+                    return;
+                }
+
+                exportLoading.style.display = 'block';
+                exportResults.style.display = 'none';
+
+                try {
+                    const response = await fetch('/export-votes', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-api-key': auth_key
+                        },
+                        body: JSON.stringify({ date: date })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.text();
+                    exportResultsContent.textContent = data;
+                    exportResults.style.display = 'block';
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Failed to fetch votes. Please try again.');
+                } finally {
+                    exportLoading.style.display = 'none';
+                }
+            };
+
+
+            window.onclick = function(event) {
+                if (event.target == exportModal) {
+                    exportModal.style.display = 'none';
+                }
+            }
         }
     </script>
 </body>

@@ -5,6 +5,8 @@ from VoteOptionsEnum import VoteOptions
 import boto3
 import json
 from typing import Dict
+import os
+
 class Persister:
     '''
     Responsible for persisting vote, member, etc data.
@@ -40,7 +42,28 @@ class Persister:
     def get_members(self)-> Dict[str, Voter]:
         pass
 
-class PersisterS3(Persister):
+class PersisterBase:
+    def list_objects(self, prefix):
+        """
+        Lists objects with the given prefix
+        Args:
+            prefix (str): The prefix to filter objects by
+        Returns:
+            list: List of object keys matching the prefix
+        """
+        raise NotImplementedError("Subclass must implement list_objects")
+
+    def get_object(self, key):
+        """
+        Gets the content of an object by key
+        Args:
+            key (str): The key of the object to retrieve
+        Returns:
+            str: The content of the object
+        """
+        raise NotImplementedError("Subclass must implement get_object")
+
+class PersisterS3(Persister, PersisterBase):
     '''
     Persister implementation using Amazon S3
     '''
@@ -187,12 +210,37 @@ class PersisterS3(Persister):
                 self.members[number] = Voter(name, number)
         self.set_members(self.members)
 
-class PersisterGlobalVariables(Persister):
+    def list_objects(self, prefix):
+        try:
+            response = self.s3.list_objects_v2(
+                Bucket=self.bucket_name,
+                Prefix=prefix
+            )
+            if 'Contents' in response:
+                return [obj['Key'] for obj in response['Contents']]
+            return []
+        except Exception as e:
+            print(f"Error listing objects: {str(e)}")
+            return []
+
+    def get_object(self, key):
+        try:
+            response = self.s3.get_object(
+                Bucket=self.bucket_name,
+                Key=key
+            )
+            return response['Body'].read().decode('utf-8')
+        except Exception as e:
+            print(f"Error getting object: {str(e)}")
+            return None
+
+class PersisterGlobalVariables(Persister, PersisterBase):
     '''
     Persister implementation using Global Variables
     '''
 
     file_path = '../members.csv'
+    file_log_folder = '/home/regolith/Downloads/'
 
     def __init__(self, use_db=False):
         self.use_db = use_db
@@ -234,3 +282,39 @@ class PersisterGlobalVariables(Persister):
 
     def get_members(self)-> Dict[str, Voter]:
         return self.members
+
+    def list_objects(self, prefix):
+        try:
+            # For local storage, we'll look in a specific directory
+            local_path = os.path.join('local_storage', prefix)
+            if not os.path.exists(local_path):
+                return []
+            
+            # Get all files in directory that match the prefix
+            import pdb
+            pdb.set_trace()
+            matching_files = []
+            for root, _, files in os.walk(os.path.dirname(local_path)):
+                for file in files:
+                    full_path = os.path.join(root, file)
+                    if full_path.startswith(os.path.join('local_storage', prefix)):
+                        # Convert local path to key format similar to S3
+                        key = full_path.replace('local_storage/', '', 1)
+                        matching_files.append(key)
+            
+            return matching_files
+        except Exception as e:
+            print(f"Error listing objects: {str(e)}")
+            return []
+
+    def get_object(self, key):
+        try:
+            local_path = self.file_log_folder+key
+            if not os.path.exists(local_path):
+                return None
+            
+            with open(local_path, 'r') as f:
+                return f.read()
+        except Exception as e:
+            print(f"Error getting object: {str(e)}")
+            return None

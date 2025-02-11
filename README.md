@@ -1,3 +1,13 @@
+TODO
+* Add export so user can see voting results
+* fix the time so its saving in EST
+* add the idea of accounts for different CBs (how are you going to do authentication?)
+* add ability to edit members phone numbers/names
+* for each account, all adding twilio account for each cb
+* better authentication of incoming twilio text? 
+* put behind a url labsbell.com/cbvoting/ 
+
+
 # Run it all local
 
 change the persister to Global Variable and the Logger

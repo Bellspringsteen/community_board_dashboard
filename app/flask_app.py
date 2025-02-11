@@ -1,8 +1,10 @@
 from flask import Flask, request, render_template,jsonify
+from flask_cors import CORS
 from functools import wraps
 import os
 from main import * 
 app = Flask('Voting')
+CORS(app)
 
 def require_auth_key(func):
     @wraps(func)
@@ -16,6 +18,25 @@ def require_auth_key(func):
         return func(*args, **kwargs)
 
     return decorated_function
+
+
+@app.route('/export-votes', methods=['POST'])
+@require_auth_key
+def export_votes():
+    try:
+        data = request.get_json()
+        date = data.get('date')
+        
+        if not date:
+            return jsonify({'error': 'Date is required'}), 400
+
+        result = api_export_votes(date)
+        print(result)
+        return result
+        
+    except Exception as e:
+        print(f"Error in export_votes: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/incomingtext', methods=['POST'])
 def incoming_text():

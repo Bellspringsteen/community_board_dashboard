@@ -55,6 +55,8 @@ def lambda_handler(event, context):
         elif event['requestContext']['http']['method']== 'GET':
             if event['rawPath'] == '/default/results':
                 return api_get_results()
+            elif event['rawPath'] == '/default/export-votes':
+                return handle_export_votes(event)
             elif event['rawPath'] == '/default/isvotingstarted':
                 return json.dumps(api_is_voting_started())
         else:
@@ -69,6 +71,8 @@ def lambda_handler(event, context):
             'body': json.dumps('Unauthorized')
         }
     
+    
+
 def get_ok():
     response = {
         'statusCode': 200,
@@ -98,6 +102,59 @@ def get_html_page():
     }
 
     return response
+
+def handle_export_votes(event):
+    try:
+        body = json.loads(event['body'])
+        date = body.get('date')
+        
+        if not date:
+            return {
+                'statusCode': 400,
+                'body': json.dumps({'error': 'Date is required'})
+            }
+
+        # Convert YYYY-MM-DD to YYYYMMDD format
+        formatted_date = date.replace('-', '')
+        
+        # Initialize S3 client
+        s3 = boto3.client('s3')
+        
+        # Fetch summary votes for the date
+        response = s3.list_objects_v2(
+            Bucket='cb-dashboard-data-store',
+            Prefix=f'summaryvotelog/{formatted_date}'
+        )
+        
+        if 'Contents' not in response:
+            return {
+                'statusCode': 404,
+                'body': json.dumps({'error': 'No data found for this date'})
+            }
+            
+        # Combine all matching files
+        combined_data = []
+        for obj in response['Contents']:
+            file_content = s3.get_object(
+                Bucket='cb-dashboard-data-store',
+                Key=obj['Key']
+            )['Body'].read().decode('utf-8')
+            combined_data.append(file_content)
+                
+        return {
+            'statusCode': 200,
+            'body': '\n'.join(combined_data),
+            'headers': {
+                'Content-Type': 'text/plain'
+            }
+        }
+        
+    except Exception as e:
+        print(f"Error in export_votes: {str(e)}")
+        return {
+            'statusCode': 500,
+            'body': json.dumps({'error': 'Internal server error'})
+        }
 
 
 

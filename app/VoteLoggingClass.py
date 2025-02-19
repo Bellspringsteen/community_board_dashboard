@@ -1,17 +1,20 @@
 from datetime import datetime
 import boto3
+import pytz
 
 class VoteLoggingClass:
     '''
     Responsible for logging raw and summary votes
     '''
     def get_day_for_timestamp(self):
-        today = datetime.now()
+        eastern = pytz.timezone('America/New_York')
+        today = datetime.now(eastern)
         formatted_date = today.strftime("%Y_%m_%d")
         return formatted_date
 
     def get_time_stamp_with_seconds(self):
-        today = datetime.now()
+        eastern = pytz.timezone('America/New_York')
+        today = datetime.now(eastern)
         formatted_date = today.strftime("%Y_%m_%d_%H:%M:%S")
         return formatted_date
 

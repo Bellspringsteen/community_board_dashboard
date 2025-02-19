@@ -1,8 +1,7 @@
 TODO
-* Add export so user can see voting results
 * add ability to edit members phone numbers/names
-* fix the time so its saving in EST
 * add the idea of accounts for different CBs (how are you going to do authentication?) simple password. Url? Have them send in twilio account information
+* prepend all logs with teh cb account. 
 * for each account, all adding twilio account for each cb
 * better authentication of incoming twilio text? 
 * put behind a url labsbell.com/cbvoting/ 

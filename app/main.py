@@ -198,18 +198,56 @@ def api_export_votes(date):
             "body": {'error': 'Internal server error'}
         }
 
-# NOV7 meeting
-# TODO, its unable to vote for cause or something like that
-# TODO, if failing because not authorized, show that.
-# TODO, seperate webpage with the manual entry for those that are ok with that,url parameter with name of person. 
-# TODO, dont just pass on exceptions, got to do something there
-# TODO, change the alert input to ********
-# TODO, put it on the custom domain you bought
-# TODO, some UI to change the names and numbers?
-# TODO, add type checking
-# TODO, change to REACT to make fluid
-# TODO, unit tests bro 
-# TODO, admin tool? With Login? to change the list of users and numbers?
+def api_get_members():
+    members = persister.get_members()
+    # Convert the members dictionary to a serializable format
+    serialized_members = {}
+    for number, voter in members.items():
+        serialized_members[number] = {
+            "name": voter.name,
+            "sms_number": voter.sms_number
+        }
+    
+    response = {
+        "statusCode": 200,
+        "headers": {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*"
+        },
+        "body": json.dumps(serialized_members)
+    }
+    return response
 
-# https://jrkve800qh.execute-api.us-east-1.amazonaws.com/default/webresults
-# https://jrkve800qh.execute-api.us-east-1.amazonaws.com/default/incomingtext
+def api_set_members(members_data):
+    try:
+        # Convert the incoming JSON data back to Voter objects
+        new_members = {}
+        for number, member_info in members_data.items():
+            new_members[number] = Voter(
+                name=member_info['name'],
+                sms_number=number
+            )
+        
+        # Update the members in the persister
+        persister.set_members(new_members)
+        
+        response = {
+            "statusCode": 200,
+            "headers": {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*"
+            },
+            "body": json.dumps({"message": "Members updated successfully"})
+        }
+    except Exception as e:
+        response = {
+            "statusCode": 500,
+            "headers": {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*"
+            },
+            "body": json.dumps({"error": str(e)})
+        }
+    
+    return response
+

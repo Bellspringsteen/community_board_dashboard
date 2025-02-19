@@ -285,6 +285,20 @@
         .text-center {
             text-align: center;
         }
+
+        .modal-body {
+            max-height: 70vh;  /* 70% of viewport height */
+            overflow-y: auto;  /* Enable vertical scrolling */
+            padding: 15px;
+        }
+
+        /* Ensure the table header stays fixed while scrolling */
+        .table thead th {
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 1;
+        }
     </style>
 </head>
 <body>
@@ -292,7 +306,14 @@
         <div class="banner-content">
             <p style="text-align: center; width: 100%; margin: 0 auto; display: block;">Board Members, to begin interacting, text 'instructions' to 855-643-6695</p>            
             
-            <!-- Simple export button -->
+            <!-- Add Edit Members button -->
+            <button class="btn btn-sm btn-light" 
+                    onclick="editMembers()" 
+                    style="position: absolute; right: 120px; top: 50%; transform: translateY(-50%);">
+                Edit Members
+            </button>
+            
+            <!-- Existing export button -->
             <button class="btn btn-sm btn-light" 
                     onclick="exportVotes()" 
                     style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%);">
@@ -403,6 +424,36 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-primary" id="fetchVotesBtn">Fetch Votes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add this modal markup before the closing body tag -->
+    <div id="editMembersModal" class="modal" tabindex="-1" style="display: none;">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Members</h5>
+                    <button type="button" class="btn-close" onclick="closeEditMembersModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <table class="table" id="membersTable">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Phone Number</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="membersTableBody">
+                        </tbody>
+                    </table>
+                    <button class="btn btn-primary" onclick="addNewMemberRow()">Add Member</button>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeEditMembersModal()">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveMembers()">Save Changes</button>
                 </div>
             </div>
         </div>
@@ -832,6 +883,103 @@
                     exportModal.style.display = 'none';
                 }
             }
+        }
+
+        function editMembers() {
+            const editMembersModal = document.getElementById('editMembersModal');
+            editMembersModal.style.display = 'block';
+            
+            // Fetch current members
+            fetch(server_url + '/members', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': auth_key,
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Extract just the body content from the response
+                const membersData = JSON.parse(data.body);
+                populateMembersTable(membersData);
+            })
+            .catch(error => {
+                console.error('Error fetching members:', error);
+                alert('Failed to fetch members');
+            });
+        }
+
+        function populateMembersTable(members) {
+            const tbody = document.getElementById('membersTableBody');
+            tbody.innerHTML = '';
+            
+            Object.entries(members).forEach(([number, member]) => {
+                addMemberRow(member.name, number);
+            });
+        }
+
+        function addMemberRow(name = '', number = '') {
+            const tbody = document.getElementById('membersTableBody');
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><input type="text" class="form-control member-name" value="${name}"></td>
+                <td><input type="text" class="form-control member-phone" value="${number}"></td>
+                <td><button class="btn btn-danger btn-sm" onclick="removeMemberRow(this)">Remove</button></td>
+            `;
+            tbody.appendChild(row);
+        }
+
+        function addNewMemberRow() {
+            addMemberRow();
+        }
+
+        function removeMemberRow(button) {
+            button.closest('tr').remove();
+        }
+
+        function closeEditMembersModal() {
+            const editMembersModal = document.getElementById('editMembersModal');
+            editMembersModal.style.display = 'none';
+        }
+
+        function saveMembers() {
+            const rows = document.getElementById('membersTableBody').getElementsByTagName('tr');
+            const members = {};
+            
+            for (let row of rows) {
+                const name = row.querySelector('.member-name').value;
+                const phone = row.querySelector('.member-phone').value;
+                
+                if (name && phone) {
+                    members[phone] = { name: name };
+                }
+            }
+            
+            fetch(server_url + '/members', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': auth_key,
+                },
+                body: JSON.stringify(members)
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert('Members updated successfully');
+                    closeEditMembersModal();
+                    // Refresh the name dropdown
+                    updateNameDropdown(Object.entries(members).map(([number, data]) => ({
+                        name: data.name,
+                        number: number
+                    })));
+                } else {
+                    throw new Error('Failed to update members');
+                }
+            })
+            .catch(error => {
+                console.error('Error saving members:', error);
+                alert('Failed to save members');
+            });
         }
     </script>
 </body>

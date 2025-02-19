@@ -12,9 +12,13 @@ TWILIO_API_KEY = os.environ.get('TWILIO_API_KEY')
 
 def lambda_handler(event, context):
     print(str(event))
-    if event['rawPath'] == '/default/webresults':
+    # Extract HTTP method and path from the event
+    http_method = event['requestContext']['http']['method']
+    path = event['rawPath']
+
+    if path == '/default/webresults':
         return get_html_page()
-    if event['rawPath'] == '/default/incomingtext' and event['rawQueryString'] == 'auth='+TWILIO_API_KEY:
+    if path == '/default/incomingtext' and event['rawQueryString'] == 'auth='+TWILIO_API_KEY:
         body = event['body']
         decoded_body = base64.b64decode(body).decode('utf-8')
         query_params = parse_qs(decoded_body)
@@ -29,8 +33,8 @@ def lambda_handler(event, context):
         }
     if 'headers' in event and 'x-api-key' in event['headers'] and event['headers']['x-api-key'] == API_KEY:
         # Authentication key is valid
-        if event['requestContext']['http']['method'] == 'POST':
-            if event['rawPath'] == '/default/startvoting':
+        if http_method == 'POST':
+            if path == '/default/startvoting':
                 if true_if_members_list_zero():
                     response = {
                         'error': 'Internal Server Error',
@@ -42,7 +46,7 @@ def lambda_handler(event, context):
                 title = data.get('title', None)
                 api_start_voting(title=title)
                 return get_ok()
-            elif event['rawPath'] == '/default/manualentry':
+            elif path == '/default/manualentry':
                 print('ALEX'+str(event))
                 body = event['body']
                 data = json.loads(body)
@@ -50,15 +54,20 @@ def lambda_handler(event, context):
                 number_sms = data['number_sms']
                 vote_to_send = data['vote_to_send']
                 return api_testing(number_sms,vote_to_send)
-            elif event['rawPath'] == '/default/stopvoting':
+            elif path == '/default/stopvoting':
                 return api_stop_voting()
-        elif event['requestContext']['http']['method']== 'GET':
-            if event['rawPath'] == '/default/results':
+            elif path == '/members':
+                body = json.loads(event['body']) if event.get('body') else {}
+                return api_set_members(body)
+        elif http_method == 'GET':
+            if path == '/default/results':
                 return api_get_results()
-            elif event['rawPath'] == '/default/export-votes':
+            elif path == '/default/export-votes':
                 return handle_export_votes(event)
-            elif event['rawPath'] == '/default/isvotingstarted':
+            elif path == '/default/isvotingstarted':
                 return json.dumps(api_is_voting_started())
+            elif path == '/members':
+                return api_get_members()
         else:
             return {
                 'statusCode': 405,

@@ -42,6 +42,9 @@ class Persister:
     def get_members(self)-> Dict[str, Voter]:
         pass
 
+    def set_members(self, value: Dict[str, Voter]):
+        pass
+
 class PersisterBase:
     def list_objects(self, prefix):
         """
@@ -282,6 +285,9 @@ class PersisterGlobalVariables(Persister, PersisterBase):
 
     def get_members(self)-> Dict[str, Voter]:
         return self.members
+
+    def set_members(self, value: Dict[str, Voter]):
+        self.members = value
 
     def list_objects(self, prefix):
         try:

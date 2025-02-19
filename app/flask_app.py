@@ -100,3 +100,19 @@ def stopvoting():
 @require_auth_key
 def is_voting_started():
     return json.dumps(api_is_voting_started())
+
+@app.route('/members', methods=['GET'])
+@require_auth_key
+def get_members():
+    print(api_get_members())
+    return api_get_members()
+
+@app.route('/members', methods=['POST'])
+@require_auth_key
+def set_members():
+    try:
+        data = request.get_json()
+        return api_set_members(data)
+    except Exception as e:
+        print(f"Error in set_members: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500

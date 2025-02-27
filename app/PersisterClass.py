@@ -290,25 +290,20 @@ class PersisterGlobalVariables(Persister, PersisterBase):
     def set_members(self, value: Dict[str, Voter],community_board):
         self.members = value
 
-    def list_objects(self, prefix,community_board):
+    def list_objects(self, prefix):
+        print("Listing objects")
         try:
             # For local storage, we'll look in a specific directory
-            local_path = os.path.join('local_storage', prefix)
-            if not os.path.exists(local_path):
-                return []
-            
+            local_path = os.path.join(self.file_log_folder, prefix)
+            print(f"Local path: {local_path}")
             # Get all files in directory that match the prefix
-            import pdb
-            pdb.set_trace()
             matching_files = []
             for root, _, files in os.walk(os.path.dirname(local_path)):
                 for file in files:
                     full_path = os.path.join(root, file)
-                    if full_path.startswith(os.path.join('local_storage', prefix)):
-                        # Convert local path to key format similar to S3
-                        key = full_path.replace('local_storage/', '', 1)
-                        matching_files.append(key)
-            
+                    key =  full_path[len(self.file_log_folder):]
+                    print(f"Checking file: {key}")
+                    matching_files.append(key)
             return matching_files
         except Exception as e:
             print(f"Error listing objects: {str(e)}")

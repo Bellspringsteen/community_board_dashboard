@@ -15,19 +15,19 @@ NOT_VALID_NUMBER_MESSAGE = 'We dont have a record of your number, tell the board
 
 
 # S3 Persister
-persister = PersisterS3()
+#persister = PersisterS3()
 #persister.load_members(community_board='7') # ONly run the first time
 
 # Local Persister
-#persister= PersisterGlobalVariables()
-#persister.load_members(community_board='7') 
+persister= PersisterGlobalVariables()
+persister.load_members(community_board='7') 
 
 
 # Local Vote Logger
-#votelogger = LocalVoteLoggingClass()
+votelogger = LocalVoteLoggingClass()
 
 # S3 Vote Logger
-votelogger = S3VoteLoggingClass()
+#votelogger = S3VoteLoggingClass()
 
 def get_vote_from_string(incoming_message):
     if 'cause' in incoming_message or 'Cause' in incoming_message or 'CAUSE' in incoming_message:
@@ -163,7 +163,6 @@ def api_export_votes(date, community_board):
         # Convert YYYY-MM-DD to YYYY_MM_DD format for file name prefix
         formatted_date = date.replace('-', '_')
         prefix = f'summaryvotelog/{community_board}/{formatted_date}'
-        print(prefix)
         
         try:
             # List all keys starting with the given prefix.

@@ -1,6 +1,7 @@
 from datetime import datetime
 import boto3
 import pytz
+import os
 
 class VoteLoggingClass:
     '''
@@ -39,7 +40,9 @@ class LocalVoteLoggingClass(VoteLoggingClass):
         f.close()
 
     def log_vote_summary_to_file(self,current_vote_name,summary,community_board):
-        f = open(self.file_log_folder+'/vote_summary'+community_board+ self.get_day_for_timestamp() +'.txt', "a")
+        directory = os.path.join(self.file_log_folder, 'summaryvotelog', community_board)
+        os.makedirs(directory, exist_ok=True)
+        f = open(os.path.join(directory, self.get_day_for_timestamp() + '.txt'), "a")
         f.write(summary)
         f.close()
 
@@ -68,4 +71,4 @@ class S3VoteLoggingClass(VoteLoggingClass):
             obj.put(Body=summary)
         except Exception as e:
             # Handle any exceptions
-            pass 
+            pass

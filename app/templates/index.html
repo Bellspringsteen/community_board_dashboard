@@ -469,6 +469,7 @@
         let server_url = 'http://127.0.0.1:5000'
         //let server_url = 'https://jrkve800qh.execute-api.us-east-1.amazonaws.com/default' 
         let auth_key = null
+        let communityBoard = '';
 
         window.onload = function () {
             getPassword();
@@ -511,7 +512,8 @@
 
         function getPassword() {
             const password = prompt("Enter Password:");
-            auth_key = password
+            communityBoard = prompt("Enter Community Board (e.g., 7):");
+            auth_key = password;
 
             checkVotingStatus();
 
@@ -528,6 +530,7 @@
                     headers: {
                     'Content-Type': 'application/json',
                     'x-api-key': auth_key,
+                    'x-community-board': communityBoard,
                     },
                 })
                 .then(response => response.json())
@@ -649,6 +652,7 @@
                     headers: {
                     'Content-Type': 'application/json',
                     'x-api-key': auth_key,
+                    'x-community-board': communityBoard,
                     },
                 })
                 .then(response => response.json())
@@ -668,6 +672,7 @@
                     headers: {
                         'Content-Type': 'application/json',
                         'x-api-key': auth_key,
+                        'x-community-board': communityBoard,
                     },
                     body: JSON.stringify(payload),
                 })
@@ -702,6 +707,7 @@
                 headers: {
                         'Content-Type': 'application/json',
                         'x-api-key': auth_key,
+                        'x-community-board': communityBoard,
                     },
             })
             .then(response => {
@@ -788,6 +794,7 @@
                     headers: {
                         'Content-Type': 'application/json',
                         'x-api-key': auth_key,
+                        'x-community-board': communityBoard,
                     },
                     body: JSON.stringify(payload),
                 })
@@ -857,7 +864,8 @@
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'x-api-key': auth_key
+                            'x-api-key': auth_key,
+                            'x-community-board': communityBoard,
                         },
                         body: JSON.stringify({ date: date })
                     });
@@ -895,6 +903,7 @@
                 headers: {
                     'Content-Type': 'application/json',
                     'x-api-key': auth_key,
+                    'x-community-board': communityBoard,
                 },
             })
             .then(response => response.json())
@@ -960,6 +969,7 @@
                 headers: {
                     'Content-Type': 'application/json',
                     'x-api-key': auth_key,
+                    'x-community-board': communityBoard,
                 },
                 body: JSON.stringify(members)
             })

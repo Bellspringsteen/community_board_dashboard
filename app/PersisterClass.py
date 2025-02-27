@@ -15,38 +15,38 @@ class Persister:
     def __init__(self, use_db=False):
         pass
 
-    def get_vote_log(self):
+    def get_vote_log(self,community_board):
         pass
 
-    def add_to_vote_log(self,key,value):
+    def add_to_vote_log(self,key,value,community_board):
         pass
 
-    def clear_vote_log(self):
+    def clear_vote_log(self,community_board):
         pass
 
-    def get_current_vote_name(self):
+    def get_current_vote_name(self,community_board):
         pass
 
-    def set_current_vote_name(self, value):
+    def set_current_vote_name(self, value,community_board):
         pass
 
-    def get_currently_in_a_voting_session(self):
+    def get_currently_in_a_voting_session(self,community_board):
         pass
 
-    def set_currently_in_a_voting_session(self, value):
+    def set_currently_in_a_voting_session(self, value,community_board):
         pass
 
-    def load_members(self):
+    def load_members(self,community_board):
         pass
 
-    def get_members(self)-> Dict[str, Voter]:
+    def get_members(self,community_board)-> Dict[str, Voter]:
         pass
 
-    def set_members(self, value: Dict[str, Voter]):
+    def set_members(self, value: Dict[str, Voter],community_board):
         pass
 
 class PersisterBase:
-    def list_objects(self, prefix):
+    def list_objects(self, prefix,community_board):
         """
         Lists objects with the given prefix
         Args:
@@ -56,7 +56,7 @@ class PersisterBase:
         """
         raise NotImplementedError("Subclass must implement list_objects")
 
-    def get_object(self, key):
+    def get_object(self, key,community_board):
         """
         Gets the content of an object by key
         Args:
@@ -84,10 +84,10 @@ class PersisterS3(Persister, PersisterBase):
         self.members_key = 'members.json'
         self.vote_log_folder = 'vote_log'
 
-    def get_vote_log(self) -> Dict[str, Vote]:
+    def get_vote_log(self,community_board) -> Dict[str, Vote]:
         vote_logs = {}
 
-        response = self.s3.list_objects_v2(Bucket=self.bucket_name, Prefix=self.vote_log_folder+'/+')
+        response = self.s3.list_objects_v2(Bucket=self.bucket_name, Prefix=self.vote_log_folder+'/'+community_board+'/+')
         for obj in response.get('Contents', []):
             # Get the object key (file path)
             object_key = obj['Key']
@@ -111,18 +111,18 @@ class PersisterS3(Persister, PersisterBase):
         
         return vote_logs
         
-    def add_to_vote_log(self,key,value):
+    def add_to_vote_log(self,key,value,community_board):
         try:
-            obj = self.s3_resource.Object(self.bucket_name, self.vote_log_folder+'/'+value.voter.sms_number)
+            obj = self.s3_resource.Object(self.bucket_name, self.vote_log_folder+'/'+community_board+'/'+value.voter.sms_number)
             to_save = value.toJSON()
             obj.put(Body=json.dumps(to_save))
         except Exception as e:
             # Handle any exceptions
             pass
 
-    def clear_vote_log(self):
+    def clear_vote_log(self,community_board):
         # List all objects with the specified prefix
-        objects = self.s3.list_objects_v2(Bucket=self.bucket_name, Prefix=self.vote_log_folder)
+        objects = self.s3.list_objects_v2(Bucket=self.bucket_name, Prefix=self.vote_log_folder+'/'+community_board+'/')
 
         # Check if the bucket has any objects
         if 'Contents' in objects:
@@ -142,48 +142,48 @@ class PersisterS3(Persister, PersisterBase):
                     for error in response['Errors']:
                         print(f"Error deleting object: {error['Key']} - {error['Message']}")
 
-    def get_current_vote_name(self):
+    def get_current_vote_name(self,community_board):
         # Implement S3-based getter for current_vote_name
         try:
-            obj = self.s3_resource.Object(self.bucket_name, self.current_vote_name_key)
+            obj = self.s3_resource.Object(self.bucket_name, '/'+community_board+'/'+self.current_vote_name_key)
             current_vote_name_json = obj.get()['Body'].read().decode('utf-8')
             return json.loads(current_vote_name_json)
         except Exception as e:
             # Handle any exceptions
             return ''
 
-    def set_current_vote_name(self, value):
+    def set_current_vote_name(self, value,community_board):
         # Implement S3-based setter for current_vote_name
         try:
-            obj = self.s3_resource.Object(self.bucket_name, self.current_vote_name_key)
+            obj = self.s3_resource.Object(self.bucket_name, '/'+community_board+'/'+self.current_vote_name_key)
             obj.put(Body=json.dumps(value))
         except Exception as e:
             # Handle any exceptions
             pass
 
-    def get_currently_in_a_voting_session(self):
+    def get_currently_in_a_voting_session(self,community_board):
         # Implement S3-based getter for currently_in_a_voting_session
         try:
-            obj = self.s3_resource.Object(self.bucket_name, self.currently_in_a_voting_session_key)
+            obj = self.s3_resource.Object(self.bucket_name, '/'+community_board+'/'+self.currently_in_a_voting_session_key)
             currently_in_a_voting_session_json = obj.get()['Body'].read().decode('utf-8')
             return json.loads(currently_in_a_voting_session_json)
         except Exception as e:
             # Handle any exceptions
             return False
 
-    def set_currently_in_a_voting_session(self, value):
+    def set_currently_in_a_voting_session(self, value,community_board):
         # Implement S3-based setter for currently_in_a_voting_session
         try:
-            obj = self.s3_resource.Object(self.bucket_name, self.currently_in_a_voting_session_key)
+            obj = self.s3_resource.Object(self.bucket_name, '/'+community_board+'/'+self.currently_in_a_voting_session_key)
             obj.put(Body=json.dumps(value))
         except Exception as e:
             # Handle any exceptions
             pass
 
-    def get_members(self)-> Dict[str, Voter]:
+    def get_members(self,community_board)-> Dict[str, Voter]:
         # Implement S3-based getter for members
         try:
-            obj = self.s3_resource.Object(self.bucket_name, self.members_key)
+            obj = self.s3_resource.Object(self.bucket_name, '/'+community_board+'/'+self.members_key)
             members_json = obj.get()['Body'].read().decode('utf-8')
             members_data = json.loads(members_json)
             # Deserialize members_data into a Dict[str, Voter]
@@ -193,17 +193,17 @@ class PersisterS3(Persister, PersisterBase):
             # Handle any exceptions
             return {}
 
-    def set_members(self, value):
+    def set_members(self, value,community_board):
         # Implement S3-based setter for members
         try:
-            obj = self.s3_resource.Object(self.bucket_name, self.members_key)
+            obj = self.s3_resource.Object(self.bucket_name, '/'+community_board+'/'+self.members_key)
             value = {key: voter.toJSON() for key, voter in value.items()}
             obj.put(Body=json.dumps(value))
         except Exception as e:
             # Handle any exceptions
             pass
 
-    def load_members(self):
+    def load_members(self,community_board):
         self.members = {}
         with open(self.file_path, 'r') as file:
             reader = csv.DictReader(file)
@@ -211,7 +211,7 @@ class PersisterS3(Persister, PersisterBase):
                 name = row['name']
                 number = row['number']
                 self.members[number] = Voter(name, number)
-        self.set_members(self.members)
+        self.set_members(self.members,community_board)
 
     def list_objects(self, prefix):
         try:
@@ -228,6 +228,7 @@ class PersisterS3(Persister, PersisterBase):
 
     def get_object(self, key):
         try:
+            print('trying to get '+self.bucket_name+' '+key)
             response = self.s3.get_object(
                 Bucket=self.bucket_name,
                 Key=key
@@ -252,28 +253,28 @@ class PersisterGlobalVariables(Persister, PersisterBase):
         self.vote_log = {}
         self.members = {}
 
-    def get_vote_log(self)-> Dict[str,Vote]:
+    def get_vote_log(self,community_board)-> Dict[str,Vote]:
         return self.vote_log
 
-    def add_to_vote_log(self,key,value):
+    def add_to_vote_log(self,key,value,community_board):
         self.vote_log[key] = value
 
-    def clear_vote_log(self):
+    def clear_vote_log(self,community_board):
         self.vote_log = {}
 
-    def get_current_vote_name(self):
+    def get_current_vote_name(self,community_board):
         return self.current_vote_name
 
-    def set_current_vote_name(self, value):
+    def set_current_vote_name(self, value,community_board):
         self.current_vote_name = value
 
-    def get_currently_in_a_voting_session(self):
+    def get_currently_in_a_voting_session(self,community_board):
         return self.currently_in_a_voting_session
 
-    def set_currently_in_a_voting_session(self, value):
+    def set_currently_in_a_voting_session(self, value,community_board):
         self.currently_in_a_voting_session = value
 
-    def load_members(self):
+    def load_members(self,community_board):
         self.members = {}
         with open(self.file_path, 'r') as file:
             reader = csv.DictReader(file)
@@ -283,13 +284,13 @@ class PersisterGlobalVariables(Persister, PersisterBase):
                 self.members[number] = Voter(name, number)
         return self.members
 
-    def get_members(self)-> Dict[str, Voter]:
+    def get_members(self,community_board)-> Dict[str, Voter]:
         return self.members
 
-    def set_members(self, value: Dict[str, Voter]):
+    def set_members(self, value: Dict[str, Voter],community_board):
         self.members = value
 
-    def list_objects(self, prefix):
+    def list_objects(self, prefix,community_board):
         try:
             # For local storage, we'll look in a specific directory
             local_path = os.path.join('local_storage', prefix)

@@ -1,10 +1,10 @@
 TODO
-* add ability to edit members phone numbers/names
-* add the idea of accounts for different CBs (how are you going to do authentication?) simple password. Url? Have them send in twilio account information
-* prepend all logs with teh cb account. 
-* for each account, all adding twilio account for each cb
-* better authentication of incoming twilio text? 
-* put behind a url labsbell.com/cbvoting/ 
+
+* Folder in s3 for each cb
+* export votes is broken for this
+* change twilio so it passes back to endpoint the cb
+* add password to each lambda env variable
+* put behind a url labsbell.com/cbvoting/  -> A alias in route53
 
 
 # Run it all local

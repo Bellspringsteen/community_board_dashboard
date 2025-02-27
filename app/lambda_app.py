@@ -18,10 +18,11 @@ def lambda_handler(event, context):
 
     if path == '/default/webresults':
         return get_html_page()
-    if path == '/default/incomingtext' and event['rawQueryString'] == 'auth='+TWILIO_API_KEY:
+    if path == '/default/incomingtext' and event['rawQueryString'].contains('auth='+TWILIO_API_KEY):
         body = event['body']
         decoded_body = base64.b64decode(body).decode('utf-8')
         query_params = parse_qs(decoded_body)
+        community_board = event['rawQueryString'].split('&')[1].split('=')[1]
         incoming_msg = query_params.get('Body', [''])[0]
         incoming_number = query_params.get('From', [''])[0]
         return {
@@ -33,9 +34,10 @@ def lambda_handler(event, context):
         }
     if 'headers' in event and 'x-api-key' in event['headers'] and event['headers']['x-api-key'] == API_KEY:
         # Authentication key is valid
+        community_board = event['headers']['x-community-board']
         if http_method == 'POST':
             if path == '/default/startvoting':
-                if true_if_members_list_zero():
+                if true_if_members_list_zero(community_board):
                     response = {
                         'error': 'Internal Server Error',
                         'message': 'Member list is zero',
@@ -44,7 +46,7 @@ def lambda_handler(event, context):
                 body = event['body']
                 data = json.loads(body)
                 title = data.get('title', None)
-                api_start_voting(title=title)
+                api_start_voting(title=title,community_board=community_board)
                 return get_ok()
             elif path == '/default/manualentry':
                 print('ALEX'+str(event))
@@ -53,21 +55,21 @@ def lambda_handler(event, context):
                 print(str(data))
                 number_sms = data['number_sms']
                 vote_to_send = data['vote_to_send']
-                return api_testing(number_sms,vote_to_send)
+                return api_testing(number_sms,vote_to_send,community_board)
             elif path == '/default/stopvoting':
-                return api_stop_voting()
+                return api_stop_voting(community_board)
             elif path == '/members':
                 body = json.loads(event['body']) if event.get('body') else {}
-                return api_set_members(body)
+                return api_set_members(body,community_board)
         elif http_method == 'GET':
             if path == '/default/results':
-                return api_get_results()
+                return api_get_results(community_board)
             elif path == '/default/export-votes':
-                return handle_export_votes(event)
+                return handle_export_votes(event,community_board)
             elif path == '/default/isvotingstarted':
-                return json.dumps(api_is_voting_started())
+                return json.dumps(api_is_voting_started(community_board))
             elif path == '/members':
-                return api_get_members()
+                return api_get_members(community_board)
         else:
             return {
                 'statusCode': 405,
@@ -112,7 +114,7 @@ def get_html_page():
 
     return response
 
-def handle_export_votes(event):
+def handle_export_votes(event,community_board):
     try:
         body = json.loads(event['body'])
         date = body.get('date')
@@ -132,7 +134,7 @@ def handle_export_votes(event):
         # Fetch summary votes for the date
         response = s3.list_objects_v2(
             Bucket='cb-dashboard-data-store',
-            Prefix=f'summaryvotelog/{formatted_date}'
+            Prefix=f'summaryvotelog/{community_board}/{formatted_date}'
         )
         
         if 'Contents' not in response:
@@ -146,6 +148,7 @@ def handle_export_votes(event):
         for obj in response['Contents']:
             file_content = s3.get_object(
                 Bucket='cb-dashboard-data-store',
+                Prefix=f'summaryvotelog/{community_board}/{formatted_date}',
                 Key=obj['Key']
             )['Body'].read().decode('utf-8')
             combined_data.append(file_content)

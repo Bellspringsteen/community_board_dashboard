@@ -11,18 +11,22 @@ def require_auth_key(func):
     def decorated_function(*args, **kwargs):
         auth_key = os.environ.get('API_KEY')
         provided_auth_key = request.headers.get('x-api-key')
+        provided_community_board = request.headers.get('x-community-board')
         
         if provided_auth_key != auth_key:
             return jsonify({'message': 'Unauthorized'}), 401
 
-        return func(*args, **kwargs)
+        if provided_community_board is None:
+            return jsonify({'message': 'No Community Board'}), 404
+
+        return func(*args, provided_community_board=provided_community_board, **kwargs)
 
     return decorated_function
 
 
 @app.route('/export-votes', methods=['POST'])
 @require_auth_key
-def export_votes():
+def export_votes(provided_community_board):
     try:
         data = request.get_json()
         date = data.get('date')
@@ -30,7 +34,7 @@ def export_votes():
         if not date:
             return jsonify({'error': 'Date is required'}), 400
 
-        result = api_export_votes(date)
+        result = api_export_votes(date,provided_community_board)
         print(result)
         return result
         
@@ -42,29 +46,31 @@ def export_votes():
 def incoming_text():
     incoming_msg = request.values['Body']
     incoming_number = request.values['From']
-    return parse_incoming_text(incoming_number,incoming_msg)
+    community_board = '7'
+    return parse_incoming_text(incoming_number,incoming_msg,community_board)
     
 @app.route('/results', methods=['GET'])
 @require_auth_key
-def results():
-    return api_get_results()
+def results(provided_community_board):
+    return api_get_results(provided_community_board)
 
 @app.route('/webresults', methods=['GET'])
 def webresults():
    return render_template('./index.html')
 
 @app.route('/manualentry', methods=['POST'])
-def testing():
+@require_auth_key
+def testing(provided_community_board):
     data = request.get_json()
     number_sms = data['number_sms']
     vote_to_send = data['vote_to_send']
-    return api_testing(number_sms,vote_to_send)
+    return api_testing(number_sms,vote_to_send,provided_community_board)
     
 @app.route('/startvoting', methods=['POST'])
 @require_auth_key
-def startvoting():
+def startvoting(provided_community_board):
     try:
-        if true_if_members_list_zero():
+        if true_if_members_list_zero(provided_community_board):
             print('Member list is zero')
             response = {
                 'error': 'Internal Server Error',
@@ -73,7 +79,7 @@ def startvoting():
             return jsonify(response), 500 
         data = request.get_json()
         title = data.get('title')
-        api_start_voting(title=title)
+        api_start_voting(title=title,community_board=provided_community_board)
         return 'OK'  
     except Exception as e:
         print(e)
@@ -85,9 +91,9 @@ def startvoting():
 
 @app.route('/stopvoting', methods=['POST'])
 @require_auth_key
-def stopvoting():
+def stopvoting(provided_community_board):
     try:
-        api_stop_voting()
+        api_stop_voting(provided_community_board)
         return 'OK'  
     except Exception as e:
         response = {
@@ -98,21 +104,20 @@ def stopvoting():
     
 @app.route('/isvotingstarted', methods=['GET'])
 @require_auth_key
-def is_voting_started():
-    return json.dumps(api_is_voting_started())
+def is_voting_started(provided_community_board):
+    return json.dumps(api_is_voting_started(provided_community_board))
 
 @app.route('/members', methods=['GET'])
 @require_auth_key
-def get_members():
-    print(api_get_members())
-    return api_get_members()
+def get_members(provided_community_board):
+    return api_get_members(provided_community_board)
 
 @app.route('/members', methods=['POST'])
 @require_auth_key
-def set_members():
+def set_members(provided_community_board):
     try:
         data = request.get_json()
-        return api_set_members(data)
+        return api_set_members(data,provided_community_board)
     except Exception as e:
         print(f"Error in set_members: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500

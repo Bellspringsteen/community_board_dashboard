@@ -21,10 +21,10 @@ class VoteLoggingClass:
     def __init__(self):
         pass
 
-    def log_raw_vote_to_file(self, incoming_number,incoming_msg,current_vote_name):
+    def log_raw_vote_to_file(self, incoming_number,incoming_msg,current_vote_name,community_board):
         pass
 
-    def log_vote_summary_to_file(self,current_vote_name,summary):
+    def log_vote_summary_to_file(self,current_vote_name,summary,community_board):
         pass
 
 class LocalVoteLoggingClass(VoteLoggingClass):
@@ -33,13 +33,13 @@ class LocalVoteLoggingClass(VoteLoggingClass):
     def __init__(self):
         pass
 
-    def log_raw_vote_to_file(self, incoming_number: str, incoming_msg: str, current_vote_name: str) -> None:
-        f = open(self.file_log_folder+'/vote_log'+ self.get_day_for_timestamp() +'.txt', "a")
+    def log_raw_vote_to_file(self, incoming_number: str, incoming_msg: str, current_vote_name: str,community_board:str) -> None:
+        f = open(self.file_log_folder+'/vote_log'+community_board+ self.get_day_for_timestamp() +'.txt', "a")
         f.write(self.get_time_stamp_with_seconds()+','+incoming_number+','+incoming_msg+','+current_vote_name+'\n')
         f.close()
 
-    def log_vote_summary_to_file(self,current_vote_name,summary):
-        f = open(self.file_log_folder+'/vote_summary'+ self.get_day_for_timestamp() +'.txt', "a")
+    def log_vote_summary_to_file(self,current_vote_name,summary,community_board):
+        f = open(self.file_log_folder+'/vote_summary'+community_board+ self.get_day_for_timestamp() +'.txt', "a")
         f.write(summary)
         f.close()
 
@@ -51,9 +51,9 @@ class S3VoteLoggingClass(VoteLoggingClass):
         self.vote_summary_folder = 'summaryvotelog/'
         self.vote_raw_folder = 'rawvotelog/'
 
-    def log_raw_vote_to_file(self, incoming_number: str, incoming_msg: str, current_vote_name: str) -> None:
+    def log_raw_vote_to_file(self, incoming_number: str, incoming_msg: str, current_vote_name: str,community_board:str) -> None:
         try:
-            object_key = self.vote_raw_folder + self.get_time_stamp_with_seconds()+'_'+incoming_number + '.txt'
+            object_key = self.vote_raw_folder + community_board + '/' + self.get_time_stamp_with_seconds()+'_'+incoming_number + '.txt'
             obj = self.s3_resource.Object(self.bucket_name, object_key)
             value = self.get_time_stamp_with_seconds()+','+incoming_number+','+incoming_msg+','+current_vote_name+'\n'
             obj.put(Body=value)
@@ -61,9 +61,9 @@ class S3VoteLoggingClass(VoteLoggingClass):
             # Handle any exceptions
             pass
 
-    def log_vote_summary_to_file(self,current_vote_name, summary):
+    def log_vote_summary_to_file(self,current_vote_name, summary,community_board:str):
         try:
-            object_key = self.vote_summary_folder + self.get_time_stamp_with_seconds()+'_'+current_vote_name+'_summary.txt'
+            object_key = self.vote_summary_folder + community_board + '/' + self.get_day_for_timestamp()+'_'+current_vote_name+'_summary.txt'
             obj = self.s3_resource.Object(self.bucket_name, object_key)
             obj.put(Body=summary)
         except Exception as e:

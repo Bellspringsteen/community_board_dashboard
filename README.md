@@ -1,10 +1,7 @@
 TODO
 
-* Folder in s3 for each cb
-* export votes is broken for this
 * change twilio so it passes back to endpoint the cb
 * add password to each lambda env variable
-* put behind a url labsbell.com/cbvoting/  -> A alias in route53
 
 
 # Run it all local
@@ -34,7 +31,7 @@ mkdir python
 cd python
 vim requirements.txt add urllib3<2 and twilio
 pip3 install -r requirements.txt -t ./
-zip -r python.zip .
+zip -r python.zip . (STOP, there must be a python/ when you first unzip so nest another python folder or change zip)
 In the AWS Lambda console, navigate to the "Layers" section. Click the "Create layer" button, and then:
 
 Enter a name for your layer.

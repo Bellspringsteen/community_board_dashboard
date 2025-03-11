@@ -18,15 +18,17 @@ def lambda_handler(event, context):
 
     if path == '/default/webresults':
         return get_html_page()
-    if path == '/default/incomingtext' and event['rawQueryString'].contains('auth='+TWILIO_API_KEY):
+    if path == '/default/incomingtext' and 'auth=' + TWILIO_API_KEY in event['rawQueryString']:
         body = event['body']
         decoded_body = base64.b64decode(body).decode('utf-8')
         query_params = parse_qs(decoded_body)
-        community_board = event['rawQueryString'].split('&')[1].split('=')[1]
+        # Extract community_board from the query string
+        query_string_params = parse_qs(event['rawQueryString'])
+        community_board = query_string_params.get('cb', [''])[0]
         incoming_msg = query_params.get('Body', [''])[0]
         incoming_number = query_params.get('From', [''])[0]
         return {
-            'body': str(parse_incoming_text(incoming_number,incoming_msg)),
+            'body': str(parse_incoming_text(incoming_number, incoming_msg, community_board)),
             'statusCode': 200,
             'headers': {
                 'Content-Type': 'application/xml'

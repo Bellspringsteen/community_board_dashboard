@@ -50,6 +50,11 @@ def lambda_handler(event, context):
                 title = data.get('title', None)
                 api_start_voting(title=title,community_board=community_board)
                 return get_ok()
+            elif path == '/default/exportvotes':
+                body = json.loads(event['body'])
+                date = body.get('date')
+                
+                return api_export_votes(date,community_board)
             elif path == '/default/manualentry':
                 print('ALEX'+str(event))
                 body = event['body']
@@ -60,14 +65,12 @@ def lambda_handler(event, context):
                 return api_testing(number_sms,vote_to_send,community_board)
             elif path == '/default/stopvoting':
                 return api_stop_voting(community_board)
-            elif path == '/members':
+            elif path == '/default/members':
                 body = json.loads(event['body']) if event.get('body') else {}
                 return api_set_members(body,community_board)
         elif http_method == 'GET':
             if path == '/default/results':
                 return api_get_results(community_board)
-            elif path == '/default/export-votes':
-                return handle_export_votes(event,community_board)
             elif path == '/default/isvotingstarted':
                 return json.dumps(api_is_voting_started(community_board))
             elif path == '/members':
@@ -98,77 +101,22 @@ def get_ok():
     return response
     
 def get_html_page():
-# Define the path to the HTML file within your Lambda package
+    # Read your HTML file
     html_file_path = os.path.join(os.path.dirname(__file__), 'templates', 'index.html')
-
-    # Read the HTML content from the file
     with open(html_file_path, 'r') as html_file:
         html_content = html_file.read()
 
-    # Construct an HTTP response
     response = {
         'statusCode': 200,
         'headers': {
             'Content-Type': 'text/html',
+            # CORS HEADERS:
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'OPTIONS,GET,POST',
+            'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'
         },
         'body': html_content
     }
-
     return response
-
-def handle_export_votes(event,community_board):
-    try:
-        body = json.loads(event['body'])
-        date = body.get('date')
-        
-        if not date:
-            return {
-                'statusCode': 400,
-                'body': json.dumps({'error': 'Date is required'})
-            }
-
-        # Convert YYYY-MM-DD to YYYYMMDD format
-        formatted_date = date.replace('-', '')
-        
-        # Initialize S3 client
-        s3 = boto3.client('s3')
-        
-        # Fetch summary votes for the date
-        response = s3.list_objects_v2(
-            Bucket='cb-dashboard-data-store',
-            Prefix=f'summaryvotelog/{community_board}/{formatted_date}'
-        )
-        
-        if 'Contents' not in response:
-            return {
-                'statusCode': 404,
-                'body': json.dumps({'error': 'No data found for this date'})
-            }
-            
-        # Combine all matching files
-        combined_data = []
-        for obj in response['Contents']:
-            file_content = s3.get_object(
-                Bucket='cb-dashboard-data-store',
-                Prefix=f'summaryvotelog/{community_board}/{formatted_date}',
-                Key=obj['Key']
-            )['Body'].read().decode('utf-8')
-            combined_data.append(file_content)
-                
-        return {
-            'statusCode': 200,
-            'body': '\n'.join(combined_data),
-            'headers': {
-                'Content-Type': 'text/plain'
-            }
-        }
-        
-    except Exception as e:
-        print(f"Error in export_votes: {str(e)}")
-        return {
-            'statusCode': 500,
-            'body': json.dumps({'error': 'Internal server error'})
-        }
-
 
 

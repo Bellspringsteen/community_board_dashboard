@@ -24,7 +24,7 @@ def require_auth_key(func):
     return decorated_function
 
 
-@app.route('/export-votes', methods=['POST'])
+@app.route('/exportvotes', methods=['POST'])
 @require_auth_key
 def export_votes(provided_community_board):
     try:

@@ -1,8 +1,6 @@
 TODO
 
-* change twilio so it passes back to endpoint the cb
-* add password to each lambda env variable
-
+* Cb cors issue
 
 # Run it all local
 

@@ -56,10 +56,8 @@ def lambda_handler(event, context):
                 
                 return api_export_votes(date,community_board)
             elif path == '/default/manualentry':
-                print('ALEX'+str(event))
                 body = event['body']
                 data = json.loads(body)
-                print(str(data))
                 number_sms = data['number_sms']
                 vote_to_send = data['vote_to_send']
                 return api_testing(number_sms,vote_to_send,community_board)

@@ -6,12 +6,11 @@ TODO
 
 change the persister to Global Variable and the Logger
 export FLASK_APP=flask_app.py
+export API_KEY=auth-key-value
 cd /app
 flask run --reload
-ngrok http 500
-Take the ngrok and put it in the TWillio Phone Number page
+http://127.0.0.1:5000/webresults
 
-export API_KEY=auth-key-value
 
 
 # deploy hosted

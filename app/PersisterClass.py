@@ -85,6 +85,7 @@ class PersisterS3(Persister, PersisterBase):
         self.vote_log_folder = 'vote_log'
 
     def get_vote_log(self,community_board) -> Dict[str, Vote]:
+
         vote_logs = {}
 
         response = self.s3.list_objects_v2(Bucket=self.bucket_name, Prefix=self.vote_log_folder+'/'+community_board+'/+')
@@ -101,9 +102,9 @@ class PersisterS3(Persister, PersisterBase):
             except json.JSONDecodeError:
                 print(f"Error loading JSON for object: {object_key}")
                 continue
-
+            
             # Extract data and create the desired object structure
-            sms_number = object_key.split('/')[1]
+            sms_number = object_key.split('/')[2]
             name_to_set = data['voter']
             vote_data = data['votes_vote']
             if vote_data:

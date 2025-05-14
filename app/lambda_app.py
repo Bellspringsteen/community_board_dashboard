@@ -71,8 +71,8 @@ def lambda_handler(event, context):
                 return api_get_results(community_board)
             elif path == '/default/isvotingstarted':
                 return json.dumps(api_is_voting_started(community_board))
-            elif path == '/members':
-                return api_get_members(community_board)
+            elif path == '/default/members':
+                return json.dumps(api_get_members(community_board))
         else:
             return {
                 'statusCode': 405,

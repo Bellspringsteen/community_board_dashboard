@@ -46,3 +46,12 @@ aws lambda add-permission --function-name CBFunction --statement-id apigateway-i
 
 # python scrip to upload members.csv to s3 as members.json
 python3 uploadmembers.py
+
+
+TWILIO setup before
+
+https://jrkve800qh.execute-api.us-east-1.amazonaws.com/default/incomingtext?auth=cb7twilio
+
+now
+
+https://cb.labsbell.com/default/incomingtext?auth=cb7twilio&cb=7

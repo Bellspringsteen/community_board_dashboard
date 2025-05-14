@@ -110,7 +110,7 @@ def is_voting_started(provided_community_board):
 @app.route('/members', methods=['GET'])
 @require_auth_key
 def get_members(provided_community_board):
-    return api_get_members(provided_community_board)
+    return json.dumps(api_get_members(provided_community_board))
 
 @app.route('/members', methods=['POST'])
 @require_auth_key

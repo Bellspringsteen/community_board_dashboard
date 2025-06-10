@@ -45,6 +45,18 @@ class Persister:
     def set_members(self, value: Dict[str, Voter],community_board):
         pass
 
+    def get_vote_type(self, community_board: str) -> str:
+        pass
+
+    def set_vote_type(self, value: str, community_board: str):
+        pass
+
+    def get_election_candidates(self, community_board: str) -> list[str]:
+        pass
+
+    def set_election_candidates(self, value: list[str], community_board: str):
+        pass
+
 class PersisterBase:
     def list_objects(self, prefix,community_board):
         """
@@ -82,7 +94,39 @@ class PersisterS3(Persister, PersisterBase):
         self.current_vote_name_key = 'current_vote_name.json'
         self.currently_in_a_voting_session_key = 'currently_in_a_voting_session.json'
         self.members_key = 'members.json'
+        self.vote_type_key = 'vote_type.json'
+        self.election_candidates_key = 'election_candidates.json'
         self.vote_log_folder = 'vote_log'
+
+    def get_vote_type(self, community_board: str) -> str:
+        try:
+            obj = self.s3_resource.Object(self.bucket_name, f'/{community_board}/{self.vote_type_key}')
+            vote_type_json = obj.get()['Body'].read().decode('utf-8')
+            return json.loads(vote_type_json)
+        except Exception as e:
+            return "RESOLUTION"
+
+    def set_vote_type(self, value: str, community_board: str):
+        try:
+            obj = self.s3_resource.Object(self.bucket_name, f'/{community_board}/{self.vote_type_key}')
+            obj.put(Body=json.dumps(value))
+        except Exception as e:
+            pass
+
+    def get_election_candidates(self, community_board: str) -> list[str]:
+        try:
+            obj = self.s3_resource.Object(self.bucket_name, f'/{community_board}/{self.election_candidates_key}')
+            election_candidates_json = obj.get()['Body'].read().decode('utf-8')
+            return json.loads(election_candidates_json)
+        except Exception as e:
+            return []
+
+    def set_election_candidates(self, value: list[str], community_board: str):
+        try:
+            obj = self.s3_resource.Object(self.bucket_name, f'/{community_board}/{self.election_candidates_key}')
+            obj.put(Body=json.dumps(value))
+        except Exception as e:
+            pass
 
     def get_vote_log(self,community_board) -> Dict[str, Vote]:
 
@@ -108,7 +152,11 @@ class PersisterS3(Persister, PersisterBase):
             name_to_set = data['voter']
             vote_data = data['votes_vote']
             if vote_data:
-                vote_logs[sms_number] = Vote(voter=Voter(name=name_to_set,sms_number=sms_number), voters_vote=VoteOptions(vote_data))
+                current_vote_type = self.get_vote_type(community_board)
+                if current_vote_type == "ELECTION":
+                    vote_logs[sms_number] = Vote(voter=Voter(name=name_to_set, sms_number=sms_number), voters_vote=vote_data)
+                else:
+                    vote_logs[sms_number] = Vote(voter=Voter(name=name_to_set,sms_number=sms_number), voters_vote=VoteOptions(vote_data))
         
         return vote_logs
         
@@ -253,6 +301,20 @@ class PersisterGlobalVariables(Persister, PersisterBase):
         self.current_vote_name = ''
         self.vote_log = {}
         self.members = {}
+        self.vote_type: str = "RESOLUTION"
+        self.election_candidates: list[str] = []
+
+    def get_vote_type(self, community_board: str) -> str:
+        return self.vote_type
+
+    def set_vote_type(self, value: str, community_board: str):
+        self.vote_type = value
+
+    def get_election_candidates(self, community_board: str) -> list[str]:
+        return self.election_candidates
+
+    def set_election_candidates(self, value: list[str], community_board: str):
+        self.election_candidates = value
 
     def get_vote_log(self,community_board)-> Dict[str,Vote]:
         return self.vote_log

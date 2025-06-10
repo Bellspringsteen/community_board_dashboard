@@ -29,40 +29,94 @@ persister = PersisterS3()
 # S3 Vote Logger
 votelogger = S3VoteLoggingClass()
 
-def get_vote_from_string(incoming_message):
-    if 'cause' in incoming_message or 'Cause' in incoming_message or 'CAUSE' in incoming_message:
-        return VoteOptions.CAUSE
-    elif 'abstain' in incoming_message or 'Abstain' in incoming_message or 'ABSTAIN' in incoming_message:
-        return VoteOptions.ABSTAIN
-    elif 'yes'in incoming_message or 'Yes' in incoming_message or 'YES' in incoming_message:
-        return VoteOptions.YES
-    elif 'no' in incoming_message or 'No' in incoming_message or 'NO' in incoming_message:
-        return VoteOptions.NO
-    else:
-        return None 
+def get_vote_from_string(incoming_message, community_board):
+    vote_type = persister.get_vote_type(community_board)
+
+    if vote_type == "ELECTION":
+        candidates = persister.get_election_candidates(community_board)
+        for candidate in candidates:
+            if incoming_message.lower() == candidate.lower():
+                return candidate # Return the original casing of the candidate name
+        return None # No matching candidate found
+    else: # RESOLUTION or default
+        # Keep the existing logic for yes/no/abstain/cause
+        incoming_message_lower = incoming_message.lower()
+        if 'cause' in incoming_message_lower:
+            return VoteOptions.CAUSE
+        elif 'abstain' in incoming_message_lower:
+            return VoteOptions.ABSTAIN
+        elif 'yes' in incoming_message_lower:
+            return VoteOptions.YES
+        elif 'no' in incoming_message_lower:
+            return VoteOptions.NO
+        else:
+            return None
 
 def summarize_votes(community_board):
+    vote_type = persister.get_vote_type(community_board)
 
-    vote_summary = {
-       VoteOptions.YES:[],
-       VoteOptions.NO:[],
-       VoteOptions.ABSTAIN:[],
-       VoteOptions.CAUSE:[]
-    }
+    if vote_type == "ELECTION":
+        candidates = persister.get_election_candidates(community_board)
+        vote_summary = {candidate: [] for candidate in candidates}
+        # Optionally, add an 'Other' category for unexpected votes, though get_vote_from_string should prevent this.
+        # vote_summary['Other'] = []
+    else: # RESOLUTION or default
+        vote_summary = {
+           VoteOptions.YES:[],
+           VoteOptions.NO:[],
+           VoteOptions.ABSTAIN:[],
+           VoteOptions.CAUSE:[]
+        }
+
     vote_log = persister.get_vote_log(community_board)
     for voter_number in vote_log:
-        vote_summary[vote_log[voter_number].voters_vote].append(vote_log[voter_number].toJSON())
+        vote_cast = vote_log[voter_number].voters_vote
+        # Ensure the vote_cast key exists in vote_summary, especially if not using an 'Other' category for elections.
+        if vote_cast in vote_summary:
+            vote_summary[vote_cast].append(vote_log[voter_number].toJSON())
+        else:
+            # Handle unexpected votes if necessary, e.g., log a warning or add to an 'Other' category
+            # For now, we'll assume get_vote_from_string prevents this for elections.
+            # If it's a RESOLUTION vote and vote_cast is somehow not in the enum, this is an issue.
+            print(f"Warning: Unexpected vote '{vote_cast}' by {voter_number} for vote type {vote_type}")
+
 
     return vote_summary
 
 def get_summary(community_board):
     vote_summary = summarize_votes(community_board)
+    vote_type = persister.get_vote_type(community_board)
     pre_amble = '------------------ \nVote Summary for '+persister.get_current_vote_name(community_board) + '\n'
-    results = ('Voting Summary:\n' +str(len(vote_summary[VoteOptions.YES]))+' yes votes \n' +str(len(vote_summary[VoteOptions.NO]))+' no votes \n' +str(len(vote_summary[VoteOptions.ABSTAIN]))+' abstain votes \n' +str(len(vote_summary[VoteOptions.CAUSE]))+' abstaining for cause votes \n')
+
+    results = 'Voting Summary:\n'
     log = '----Raw Log ----- \n'
-    for voted_option in VoteOptions:
-        for voted_option_results in vote_summary[voted_option]:
-            log += voted_option_results['voter']+" voted "+ voted_option.value +' \n'
+
+    if vote_type == "ELECTION":
+        candidates = persister.get_election_candidates(community_board)
+        for candidate in candidates:
+            results += f"{len(vote_summary.get(candidate, []))} votes for {candidate}\n"
+        # Optional: Add 'Other' to summary if used
+        # if 'Other' in vote_summary and len(vote_summary['Other']) > 0:
+        #     results += f"{len(vote_summary['Other'])} other votes\n"
+
+        for candidate_name in candidates:
+            if candidate_name in vote_summary: # Check if candidate received votes
+                for voted_option_results in vote_summary[candidate_name]:
+                    log += f"{voted_option_results['voter']} voted for {candidate_name}\n"
+        # Optional: Log 'Other' votes
+        # if 'Other' in vote_summary:
+        #     for voted_option_results in vote_summary['Other']:
+        #         log += f"{voted_option_results['voter']} cast an un tallied vote\n"
+
+    else: # RESOLUTION or default
+        results += (str(len(vote_summary.get(VoteOptions.YES,[])))+' yes votes \n' +
+                    str(len(vote_summary.get(VoteOptions.NO,[])))+' no votes \n' +
+                    str(len(vote_summary.get(VoteOptions.ABSTAIN,[])))+' abstain votes \n' +
+                    str(len(vote_summary.get(VoteOptions.CAUSE,[])))+' abstaining for cause votes \n')
+        for voted_option in VoteOptions:
+            if voted_option in vote_summary: # Check if this option received votes
+                for voted_option_results in vote_summary[voted_option]:
+                    log += voted_option_results['voter']+" voted "+ voted_option.value +' \n'
 
     return pre_amble+results+log
 
@@ -102,7 +156,7 @@ def parse_incoming_text(incoming_number,incoming_msg,community_board):
         return create_response_msg(NOT_VOTING_MESSAGE)
     if check_if_instructions(incoming_msg):
         return create_response_msg(INSTRUCTIONS_MESSAGE)
-    vote_cast = get_vote_from_string(incoming_msg)
+    vote_cast = get_vote_from_string(incoming_msg, community_board) # pass community_board
     if vote_cast == None:
         return create_response_msg(INVALID_INPUT_MESSAGE)
     
@@ -110,7 +164,13 @@ def parse_incoming_text(incoming_number,incoming_msg,community_board):
     persister.add_to_vote_log(key=voting_member.sms_number,value=Vote(voting_member,vote_cast),community_board=community_board)
 
     r = MessagingResponse()
-    r.message('Your vote has been recorded, you voted '+vote_cast.value+' for resolution '+persister.get_current_vote_name(community_board))
+    vote_type = persister.get_vote_type(community_board)
+    if vote_type == "ELECTION":
+        # For elections, vote_cast is a string (candidate name)
+        r.message(f'Your vote has been recorded, you voted for {str(vote_cast)} for election {persister.get_current_vote_name(community_board)}')
+    else:
+        # For resolutions, vote_cast is a VoteOptions enum
+        r.message(f'Your vote has been recorded, you voted {vote_cast.value} for resolution {persister.get_current_vote_name(community_board)}')
     return str(r)
 
 def true_if_members_list_zero(community_board):
@@ -138,8 +198,13 @@ def api_get_results(community_board):
 def api_testing(number_sms,vote_to_send,community_board):
     return parse_incoming_text(number_sms, vote_to_send,community_board)
 
-def api_start_voting(title,community_board):
+def api_start_voting(title, community_board, vote_type="RESOLUTION", candidates=None):
     persister.set_current_vote_name(title,community_board)
+    persister.set_vote_type(vote_type, community_board)
+    if vote_type == "ELECTION" and candidates:
+        persister.set_election_candidates(candidates, community_board)
+    elif vote_type == "RESOLUTION":
+        persister.set_election_candidates([], community_board)
     persister.set_currently_in_a_voting_session(True,community_board)
 
 def api_stop_voting(community_board):
@@ -147,14 +212,26 @@ def api_stop_voting(community_board):
     persister.set_current_vote_name('',community_board)
     persister.set_currently_in_a_voting_session(False,community_board)
     persister.clear_vote_log(community_board)
+    # Reset vote type and clear candidates
+    persister.set_vote_type("RESOLUTION", community_board)
+    persister.set_election_candidates([], community_board)
 
 def api_is_voting_started(community_board):
+    vote_type = persister.get_vote_type(community_board)
+    candidates = persister.get_election_candidates(community_board)
+    response_body = {
+        "isVotingStarted": persister.get_currently_in_a_voting_session(community_board),
+        "currentVoteName": persister.get_current_vote_name(community_board),
+        "voteType": vote_type,
+        "electionCandidates": candidates if vote_type == "ELECTION" else []
+    }
     response = {
         "statusCode": 200,
         "headers": {
             "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*" # Added for consistency with other API endpoints
         },
-        "body": {"isVotingStarted": persister.get_currently_in_a_voting_session(community_board),"currentVoteName":persister.get_current_vote_name(community_board)}
+        "body": json.dumps(response_body) # Ensure body is json string
     }
     return response
 

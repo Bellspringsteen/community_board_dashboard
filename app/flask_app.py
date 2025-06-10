@@ -79,8 +79,18 @@ def startvoting(provided_community_board):
             return jsonify(response), 500 
         data = request.get_json()
         title = data.get('title')
-        api_start_voting(title=title,community_board=provided_community_board)
-        return 'OK'  
+        vote_type = data.get('vote_type', 'RESOLUTION') # Default to RESOLUTION
+        candidates = data.get('candidates') # Will be None if not provided
+
+        if not title:
+             return jsonify({'message': 'Title is required'}), 400
+
+        if vote_type == "ELECTION" and not (candidates and isinstance(candidates, list) and len(candidates) > 0):
+            return jsonify({'message': 'Candidates list must be provided for ELECTION vote type'}), 400
+
+        # api_start_voting from main.py handles candidates being None if vote_type is RESOLUTION
+        api_start_voting(title=title, community_board=provided_community_board, vote_type=vote_type, candidates=candidates)
+        return jsonify({'message': f'Voting started for {title}'}), 200
     except Exception as e:
         print(e)
         response = {

@@ -126,6 +126,34 @@ class TestMainGetVoteFromString(unittest.TestCase):
         mock_persister_instance.get_vote_type.assert_called_with(community_board)
         mock_persister_instance.get_election_candidates.assert_called_with(community_board)
 
+    @patch('app.main.persister', new=mock_persister_instance)
+    def test_get_vote_from_string_election_various_casings(self):
+        mock_persister_instance.reset_mock()
+        community_board = "cb_elec_case_test"
+        # Candidates stored with specific casing
+        candidates = ["Alice Wonderland", "Bob The Builder", "Charlie Chaplin"]
+        mock_persister_instance.get_vote_type.return_value = "ELECTION"
+        mock_persister_instance.get_election_candidates.return_value = candidates
+
+        # Test various casings for "Alice Wonderland"
+        self.assertEqual(main.get_vote_from_string("alice wonderland", community_board), "Alice Wonderland")
+        self.assertEqual(main.get_vote_from_string("ALICE WONDERLAND", community_board), "Alice Wonderland")
+        self.assertEqual(main.get_vote_from_string("Alice Wonderland", community_board), "Alice Wonderland")
+        self.assertEqual(main.get_vote_from_string("aLiCe wOnDeRlAnD", community_board), "Alice Wonderland")
+
+        # Test for "Bob The Builder"
+        self.assertEqual(main.get_vote_from_string("bob the builder", community_board), "Bob The Builder")
+
+        # Test for "Charlie Chaplin" with extra space (already covered in another test, but good for completeness)
+        self.assertEqual(main.get_vote_from_string("charlie chaplin ", community_board), "Charlie Chaplin")
+
+        # Test non-existent candidate
+        self.assertIsNone(main.get_vote_from_string("Non Existent", community_board))
+
+        # Ensure underlying mocks were called as expected (at least once for each successful group if logic changes)
+        self.assertTrue(mock_persister_instance.get_vote_type.call_count >= 1)
+        self.assertTrue(mock_persister_instance.get_election_candidates.call_count >= 1)
+
 
 class TestMainSummarizeVotes(unittest.TestCase):
     @patch('app.main.persister', new=mock_persister_instance)
@@ -373,6 +401,56 @@ class TestMainParseIncomingText(unittest.TestCase):
         self.assertIn(main.INVALID_INPUT_MESSAGE, response_str)
         mock_persister_instance.add_to_vote_log.assert_not_called() # Vote should not be logged
         mock_votelogger_instance.log_raw_vote_to_file.assert_called_once() # Raw attempt is logged
+
+        # Assert the election-specific error message
+        # Re-configure mock for get_election_candidates as it's called inside the tested logic
+        mock_persister_instance.get_election_candidates.return_value = ["Specific Candidate", "Other Guy"]
+        # Call the function again or ensure the previous call to parse_incoming_text uses these candidates
+        # For simplicity, we can check the message content based on the setup for this test.
+        # This test was originally checking for main.INVALID_INPUT_MESSAGE, now it should check the election one.
+
+        # Re-trigger with mocks properly set for THIS test's expectation for message content.
+        # Note: setUp method for the class already configures some mocks. This test might need to override.
+        mock_persister_instance.get_members.return_value = {incoming_number: Voter("Test User", incoming_number)}
+        mock_persister_instance.get_currently_in_a_voting_session.return_value = True
+        mock_persister_instance.get_vote_type.return_value = "ELECTION" # Crucial for this path
+        mock_get_vote_from_string.return_value = None # Invalid vote
+        mock_persister_instance.get_election_candidates.reset_mock() # Reset because it might have been called by other tests or earlier in this one.
+        mock_persister_instance.get_election_candidates.return_value = ["Alice", "Bob"] # Candidates for the message
+
+        response_str = main.parse_incoming_text(incoming_number, incoming_msg, community_board)
+
+        self.assertIn("Your vote was NOT RECORDED, your message was invalid.", response_str)
+        self.assertIn("For this election, you must enter one of the candidate names.", response_str)
+        self.assertIn("The available candidates are: Alice, Bob.", response_str)
+        mock_persister_instance.get_election_candidates.assert_called_once_with(community_board) # Called to create the message
+
+
+    @patch('app.main.persister', new=mock_persister_instance)
+    @patch('app.main.votelogger', new=mock_votelogger_instance)
+    @patch('app.main.get_vote_from_string')
+    def test_parse_incoming_text_resolution_vote_invalid_input(self, mock_get_vote_from_string):
+        community_board = "cb_parse_res_invalid"
+        incoming_number = "+1112223333"
+        incoming_msg = "invalid_res_vote"
+
+        # Setup mocks for this specific scenario - note setUp already does some of this.
+        mock_persister_instance.get_members.return_value = {incoming_number: Voter("Test User", incoming_number)}
+        mock_persister_instance.get_currently_in_a_voting_session.return_value = True
+        mock_persister_instance.get_vote_type.return_value = "RESOLUTION" # Crucial for this path
+        mock_get_vote_from_string.return_value = None # Simulate invalid vote string for resolution
+        # Ensure get_election_candidates is not called or its result not used for RESOLUTION message
+        mock_persister_instance.get_election_candidates.reset_mock()
+
+        response_str = main.parse_incoming_text(incoming_number, incoming_msg, community_board)
+
+        self.assertIn(main.INVALID_INPUT_MESSAGE, response_str)
+        # Check that the generic invalid message is used, not the election-specific one
+        self.assertNotIn("The available candidates are:", response_str)
+        mock_persister_instance.add_to_vote_log.assert_not_called()
+        mock_votelogger_instance.log_raw_vote_to_file.assert_called_once()
+        mock_persister_instance.get_election_candidates.assert_not_called() # Should not be called for RESOLUTION type error message
+
 
     def test_parse_incoming_text_not_in_voting_session(self):
         mock_persister_instance.get_currently_in_a_voting_session.return_value = False

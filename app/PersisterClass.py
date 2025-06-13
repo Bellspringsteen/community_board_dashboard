@@ -4,7 +4,7 @@ from VoteClass import Vote
 from VoteOptionsEnum import VoteOptions
 import boto3
 import json
-from typing import Dict
+from typing import Dict, List
 import os
 
 class Persister:
@@ -51,10 +51,10 @@ class Persister:
     def set_vote_type(self, value: str, community_board: str):
         pass
 
-    def get_election_candidates(self, community_board: str) -> list[str]:
+    def get_election_candidates(self, community_board: str) -> List[str]:
         pass
 
-    def set_election_candidates(self, value: list[str], community_board: str):
+    def set_election_candidates(self, value: List[str], community_board: str):
         pass
 
 class PersisterBase:
@@ -113,7 +113,7 @@ class PersisterS3(Persister, PersisterBase):
         except Exception as e:
             pass
 
-    def get_election_candidates(self, community_board: str) -> list[str]:
+    def get_election_candidates(self, community_board: str) -> List[str]:
         try:
             obj = self.s3_resource.Object(self.bucket_name, f'/{community_board}/{self.election_candidates_key}')
             election_candidates_json = obj.get()['Body'].read().decode('utf-8')
@@ -121,7 +121,7 @@ class PersisterS3(Persister, PersisterBase):
         except Exception as e:
             return []
 
-    def set_election_candidates(self, value: list[str], community_board: str):
+    def set_election_candidates(self, value: List[str], community_board: str):
         try:
             obj = self.s3_resource.Object(self.bucket_name, f'/{community_board}/{self.election_candidates_key}')
             obj.put(Body=json.dumps(value))
@@ -302,7 +302,7 @@ class PersisterGlobalVariables(Persister, PersisterBase):
         self.vote_log = {}
         self.members = {}
         self.vote_type: str = "RESOLUTION"
-        self.election_candidates: list[str] = []
+        self.election_candidates: List[str] = []
 
     def get_vote_type(self, community_board: str) -> str:
         return self.vote_type
@@ -310,10 +310,10 @@ class PersisterGlobalVariables(Persister, PersisterBase):
     def set_vote_type(self, value: str, community_board: str):
         self.vote_type = value
 
-    def get_election_candidates(self, community_board: str) -> list[str]:
+    def get_election_candidates(self, community_board: str) -> List[str]:
         return self.election_candidates
 
-    def set_election_candidates(self, value: list[str], community_board: str):
+    def set_election_candidates(self, value: List[str], community_board: str):
         self.election_candidates = value
 
     def get_vote_log(self,community_board)-> Dict[str,Vote]:

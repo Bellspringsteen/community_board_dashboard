@@ -158,7 +158,18 @@ def parse_incoming_text(incoming_number,incoming_msg,community_board):
         return create_response_msg(INSTRUCTIONS_MESSAGE)
     vote_cast = get_vote_from_string(incoming_msg, community_board) # pass community_board
     if vote_cast == None:
-        return create_response_msg(INVALID_INPUT_MESSAGE)
+        current_vote_type = persister.get_vote_type(community_board)
+        if current_vote_type == "ELECTION":
+            candidates = persister.get_election_candidates(community_board)
+            candidate_names = ", ".join(candidates) if candidates else "No candidates listed"
+            election_error_message = (
+                f"Your vote was NOT RECORDED, your message was invalid. "
+                f"For this election, you must enter one of the candidate names. "
+                f"The available candidates are: {candidate_names}."
+            )
+            return create_response_msg(election_error_message)
+        else:
+            return create_response_msg(INVALID_INPUT_MESSAGE)
     
 
     persister.add_to_vote_log(key=voting_member.sms_number,value=Vote(voting_member,vote_cast),community_board=community_board)

@@ -325,7 +325,18 @@
     <div class="container">
         <div id="left-section" class="left-section">
             <div class="container voting-controls" id="votingControls" style="display: none;">
-                <input type="text" id="votingTitleInput" class="voting-title-input" placeholder="Title of Vote">
+                <div>
+                    <label for="voteTypeSelect">Vote Type:</label>
+                    <select id="voteTypeSelect">
+                        <option value="RESOLUTION" selected>Resolution</option>
+                        <option value="ELECTION">Election</option>
+                    </select>
+                </div>
+                <div id="candidatesArea" style="display: none; margin-top: 10px; margin-bottom: 10px;">
+                    <label for="candidatesInput">Candidates (one per line):</label><br>
+                    <textarea id="candidatesInput" rows="5" cols="30"></textarea>
+                </div>
+                <input type="text" id="votingTitleInput" class="voting-title-input" placeholder="Title of Vote" style="margin-right: 10px;">
                 <button onclick="startVoting()">Start Voting</button>
             </div>
             <div id="results" class="results">
@@ -470,9 +481,20 @@
         let server_url = 'https://jrkve800qh.execute-api.us-east-1.amazonaws.com/default' 
         let auth_key = null
         let communityBoard = '';
+        let currentVoteData = { voteType: "RESOLUTION", electionCandidates: [] }; // Global state for vote type and candidates
+
 
         window.onload = function () {
             getPassword();
+            // Add event listener for vote type select
+            document.getElementById("voteTypeSelect").addEventListener("change", function() {
+                const candidatesArea = document.getElementById("candidatesArea");
+                if (this.value === "ELECTION") {
+                    candidatesArea.style.display = "block";
+                } else {
+                    candidatesArea.style.display = "none";
+                }
+            });
         };
 
         function displayWarningMessage() {
@@ -537,22 +559,65 @@
                 .then(data => {
                     returned_value = data['body']
 
-                    if (returned_value.isVotingStarted === true) {
-                        votingStarted = true;
+                    // Assuming data.body is the object like:
+                    // {"isVotingStarted": true, "currentVoteName": "Test Election", "voteType": "ELECTION", "electionCandidates": ["Alice", "Bob"]}
+                    // currentVoteData = returned_value; // data.body is already assigned to returned_value
+
+                    // If returned_value is a string, parse it. Otherwise, use it directly.
+                    if (typeof returned_value === 'string') {
+                        currentVoteData = JSON.parse(returned_value);
                     } else {
-                        votingStarted = false;
+                        currentVoteData = returned_value;
                     }
-                    currentVoteName = returned_value.currentVoteName;
+
+                    votingStarted = currentVoteData.isVotingStarted;
+                    currentVoteName = currentVoteData.currentVoteName;
+                    // voteType and electionCandidates are now part of currentVoteData
+
                     document.getElementById("votingTitleInput").value = currentVoteName;
-                    refreshVotingVisibility()
+                    refreshVotingVisibility(); // This will now use currentVoteData
+
+                    // TODO: Replace this hardcoded names list with a fetch from /members endpoint if needed for nameDropdown
                     names = [{'name':'Blanche','number':'+1'},{'name':'Page','number':'+19174056332'},{'name':'Rhonda','number':'+13474765085'},{'name':'George','number':'+13476819729'},{'name':'Peter','number':'+19175438922'}]
-                    updateNameDropdown(names)
+                    updateNameDropdown(names);
+                    updateManualVoteOptions(); // Update vote options based on fetched vote type
                 })
                 .catch(error => {
                     console.error("Error checking voting status:", error);
                 });
         }
 
+        function updateManualVoteOptions() {
+            const voteDropdown = document.getElementById("voteDropdown");
+            voteDropdown.innerHTML = '<option value="">Select Vote Option</option>'; // Clear existing options
+
+            if (currentVoteData.voteType === "ELECTION") {
+                if (currentVoteData.electionCandidates && currentVoteData.electionCandidates.length > 0) {
+                    currentVoteData.electionCandidates.forEach(candidate => {
+                        const option = document.createElement("option");
+                        option.value = candidate;
+                        option.text = candidate;
+                        voteDropdown.appendChild(option);
+                    });
+                } else {
+                     // Handle case where it's an election but no candidates (should ideally not happen if started correctly)
+                    console.warn("Election mode, but no candidates found in currentVoteData.");
+                }
+            } else { // RESOLUTION or default
+                const resolutionOptions = [
+                    { value: "Yes", text: "Yes" },
+                    { value: "No", text: "No" },
+                    { value: "Abstain", text: "Abstain" },
+                    { value: "Cause", text: "Ineligible for Cause" }
+                ];
+                resolutionOptions.forEach(opt => {
+                    const option = document.createElement("option");
+                    option.value = opt.value;
+                    option.text = opt.text;
+                    voteDropdown.appendChild(option);
+                });
+            }
+        }
 
         function updateTimerDisplay() {
             const displayMinutes = Math.floor(totalSeconds / 60);
@@ -616,33 +681,73 @@
 
         function updateResults(data) {
             lastFetchTime = Date.now();
-            if (data['body']){
-                returned_value = JSON.parse(data['body'])
-
-            }else{
-                returned_value = data
-            }
-
-            const yesCount = returned_value["Yes"].length;
-            const noCount = returned_value["No"].length;
-            const abstainCount = returned_value["Abstain"].length;
-            const causeCount = returned_value["Ineligible for Cause"].length;
-
-            document.getElementById("yesCount").textContent = yesCount;
-            document.getElementById("noCount").textContent = noCount;
-            document.getElementById("abstainCount").textContent = abstainCount;
-            document.getElementById("causeCount").textContent = causeCount;
-
-            const voteLog = document.getElementById("voteLog");
-            voteLog.innerHTML = '';
-            for (const vote_selected of ["Yes","No","Abstain","Ineligible for Cause"]){
-                for (const vote of returned_value[vote_selected]) {
-                    const li = document.createElement("li");
-                    li.textContent = `${vote.voter}- `+ vote_selected;
-                    voteLog.appendChild(li);
+            let returned_value;
+            if (data['body']) { // Assuming response from /results might be wrapped
+                try {
+                    returned_value = JSON.parse(data['body']);
+                } catch (e) {
+                    console.error("Error parsing data.body in updateResults:", e);
+                    returned_value = {}; // Default to empty if parsing fails
                 }
+            } else {
+                returned_value = data; // Assuming data is already the parsed results object
             }
 
+            const voteCountDiv = document.querySelector('.vote-count');
+            const voteLogUl = document.getElementById("voteLog");
+
+            // Clear previous results
+            voteCountDiv.innerHTML = '';
+            voteLogUl.innerHTML = '';
+
+            if (currentVoteData.voteType === "ELECTION") {
+                if (currentVoteData.electionCandidates && currentVoteData.electionCandidates.length > 0) {
+                    currentVoteData.electionCandidates.forEach(candidate => {
+                        const count = returned_value[candidate] ? returned_value[candidate].length : 0;
+                        const resultItem = document.createElement('div');
+                        resultItem.classList.add('result-item');
+                        // Sanitize candidate name for use in ID
+                        const candidateId = candidate.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+                        resultItem.innerHTML = `<span class="label">${candidate}:</span> <span id="${candidateId}Count">${count}</span>`;
+                        voteCountDiv.appendChild(resultItem);
+
+                        if (returned_value[candidate]) {
+                            returned_value[candidate].forEach(voterEntry => {
+                                const li = document.createElement("li");
+                                li.textContent = `${voterEntry.voter} - ${candidate}`;
+                                voteLogUl.appendChild(li);
+                            });
+                        }
+                    });
+                } else {
+                    voteCountDiv.innerHTML = '<p>Election configured, but no candidates found.</p>';
+                }
+            } else { // RESOLUTION or default
+                const resolutionVoteOptions = [
+                    { key: "Yes", label: "Yes" },
+                    { key: "No", label: "No" },
+                    { key: "Abstain", label: "Abstain" },
+                    { key: "Ineligible for Cause", label: "Ineligible for Cause" }
+                ];
+
+                resolutionVoteOptions.forEach(option => {
+                    const count = returned_value[option.key] ? returned_value[option.key].length : 0;
+                    const resultItem = document.createElement('div');
+                    resultItem.classList.add('result-item');
+                    // Sanitize key for use in ID
+                    const optionId = option.key.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+                    resultItem.innerHTML = `<span class="label">${option.label}:</span> <span id="${optionId}Count">${count}</span>`;
+                    voteCountDiv.appendChild(resultItem);
+
+                    if (returned_value[option.key]) {
+                        returned_value[option.key].forEach(voterEntry => {
+                            const li = document.createElement("li");
+                            li.textContent = `${voterEntry.voter} - ${option.key}`;
+                            voteLogUl.appendChild(li);
+                        });
+                    }
+                });
+            }
         }
 
         function fetchResults() {
@@ -662,24 +767,52 @@
 
         function startVoting() {
             const titleInput = document.getElementById("votingTitleInput").value;
-            if (titleInput) {
-                // Create a payload object with the title
-                const payload = {
-                    title: titleInput,
-                };
-                fetch(server_url+'/startvoting', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-api-key': auth_key,
-                        'x-community-board': communityBoard,
-                    },
-                    body: JSON.stringify(payload),
-                })
-                .then(response => {
+            const voteType = document.getElementById("voteTypeSelect").value;
+            let candidatesList = [];
+
+            if (!titleInput) {
+                alert("Please enter a title for the vote.");
+                return;
+            }
+
+            if (voteType === "ELECTION") {
+                const candidatesRaw = document.getElementById("candidatesInput").value;
+                candidatesList = candidatesRaw.split('\n')
+                                            .map(name => name.trim())
+                                            .filter(name => name !== "");
+                if (candidatesList.length < 2) {
+                    alert("For an ELECTION, please provide at least two candidates, each on a new line.");
+                    return;
+                }
+            }
+
+            const payload = {
+                title: titleInput,
+                vote_type: voteType,
+            };
+
+            if (voteType === "ELECTION") {
+                payload.candidates = candidatesList;
+            }
+            // For RESOLUTION, candidates will not be in payload,
+            // flask_app.py defaults candidates to None if not provided,
+            // and main.py's api_start_voting handles candidates=None by setting empty list.
+
+            fetch(server_url+'/startvoting', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': auth_key,
+                    'x-community-board': communityBoard,
+                },
+                body: JSON.stringify(payload),
+            })
+            .then(response => {
+                // Try to parse JSON regardless of status code first, to get error messages from server
+                return response.json().then(data => {
                     if (response.status === 200) {
-                        // If the response status is 200, the voting started successfully
-                        startFetchResults()
+                        alert(data.message || "Voting started successfully!"); // Use server message if available
+                        startFetchResults();
                         document.getElementById("votingControls").style.display = "none";
                         document.getElementById("stopButton").style.display = "block";
                         document.getElementById("results").style.display = "block";
@@ -687,18 +820,27 @@
                         document.getElementById("right-section").style.display = "none";
                         document.getElementById("left-section").style.width = '45%';
 
-                        votingStarted = true;
-                        currentVoteName = titleInput
-                        document.getElementById("voteTitle").textContent = `Results- ${titleInput}`;
+                        votingStarted = true; // This global var seems to be used by refreshVotingVisibility
+                        currentVoteName = titleInput; // This global var seems to be used by refreshVotingVisibility
+
+                        // Important: Update currentVoteData after successfully starting vote
+                        currentVoteData.voteType = voteType;
+                        currentVoteData.electionCandidates = voteType === "ELECTION" ? candidatesList : [];
+
+                        // Refresh UI elements based on the new vote type
+                        refreshVotingVisibility(); // This should now use the updated currentVoteData
+                        updateManualVoteOptions(); // Update dropdown for manual entry
+
                     } else {
-                        alert("Failed to start voting.");
+                        // Use error message from server response if available
+                        alert(data.message || `Failed to start voting. Status: ${response.status}`);
                     }
-                })
-                .catch(error => {
-                    console.error("Error starting voting:", error);
-                    alert("Failed to start voting.");
                 });
-            }
+            })
+            .catch(error => {
+                console.error("Error starting voting:", error);
+                alert("An error occurred while trying to start voting. Check console for details.");
+            });
         }
 
         function stopVoting() {
@@ -739,14 +881,28 @@
                 document.getElementById("votingControls").style.display = "none";
                 document.getElementById("stopButton").style.display = "block";
                 document.getElementById("results").style.display = "block";
-                startFetchResults()
-                document.getElementById("voteTitle").textContent = `Results of Vote - ${currentVoteName}`;
+                startFetchResults(); // This will call fetchResults -> updateResults
+
+                let voteTitleText = `Results of Vote - ${currentVoteName}`;
+                if (currentVoteData.voteType === "ELECTION") {
+                    voteTitleText = `Results for Election: ${currentVoteName}`;
+                }
+                document.getElementById("voteTitle").textContent = voteTitleText;
+
                 document.getElementById("right-section").style.display = "none";
-                document.getElementById("left-section").style.width = '45%';
+                document.getElementById("left-section").style.width = '45%'; // Consider '100%' or adjust as per new layout needs
+
+                // Ensure manual vote options are correct for the current vote type
+                updateManualVoteOptions();
+                fetchResults(); // Explicitly call to refresh results display based on new currentVoteData
+
             } else {
                 document.getElementById("results").style.display = "none";
                 document.getElementById("votingControls").style.display = "block";
                 document.getElementById("right-section").style.display = "block";
+                document.getElementById("left-section").style.width = '90%'; // Reset width
+                currentVoteData = { voteType: "RESOLUTION", electionCandidates: [] }; // Reset on stop/initial
+                updateManualVoteOptions(); // Reset manual vote options to default (Resolution)
             }
         }
 

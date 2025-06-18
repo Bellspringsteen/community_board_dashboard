@@ -48,7 +48,25 @@ def lambda_handler(event, context):
                 body = event['body']
                 data = json.loads(body)
                 title = data.get('title', None)
-                api_start_voting(title=title,community_board=community_board)
+                vote_type = data.get('vote_type', 'RESOLUTION')
+                candidates = data.get('candidates', None)
+
+                if vote_type == "ELECTION":
+                    if not candidates:
+                        response = {
+                            'error': 'Bad Request',
+                            'message': 'Candidates are required for ELECTION vote_type',
+                        }
+                        return {
+                            'statusCode': 400,
+                            'headers': {
+                                'Content-Type': 'application/json',
+                                "Access-Control-Allow-Origin": "*" # TODO Remove this
+                            },
+                            'body': json.dumps(response)
+                        }
+
+                api_start_voting(title=title, community_board=community_board, vote_type=vote_type, candidates=candidates)
                 return get_ok()
             elif path == '/default/exportvotes':
                 body = json.loads(event['body'])
@@ -62,7 +80,8 @@ def lambda_handler(event, context):
                 vote_to_send = data['vote_to_send']
                 return api_testing(number_sms,vote_to_send,community_board)
             elif path == '/default/stopvoting':
-                return api_stop_voting(community_board)
+                api_stop_voting(community_board)
+                return get_ok()
             elif path == '/default/members':
                 body = json.loads(event['body']) if event.get('body') else {}
                 return api_set_members(body,community_board)

@@ -195,6 +195,21 @@ def api_get_results(community_board):
     custom_encoder = lambda obj: obj.value if isinstance(obj, Enum) else obj #TODO , shouldnt this be apart of the class
     summary = summarize_votes(community_board)
     converted_summary = {custom_encoder(key): value for key, value in summary.items()}
+
+    # Get all members and vote log
+    all_members_dict = persister.get_members(community_board)
+    vote_log_dict = persister.get_vote_log(community_board)
+    
+    # Determine who hasn't voted
+    voted_sms_numbers = set(vote_log_dict.keys())
+    not_voted_names = []
+    if all_members_dict: # Check if all_members_dict is not None and not empty
+        for sms_number, voter_object in all_members_dict.items():
+            if sms_number not in voted_sms_numbers:
+                not_voted_names.append(voter_object.name)
+            
+    converted_summary["not_voted"] = not_voted_names
+
     response = {
         "statusCode": 200,
         "headers": {

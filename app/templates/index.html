@@ -342,10 +342,9 @@
             <div id="results" class="results">
                 <div id="votingControlsContainer">
                     <button id="stopButton" onclick="stopVoting()" style="display: none;">Stop Voting</button>
-                    <div id="manualEntryContainer">
+                    <!-- <div id="manualEntryContainer">
                         <select id="nameDropdown">
                             <option value="">Select Name</option>
-                            <!-- Add names as options dynamically using JavaScript -->
                         </select>
                         <select id="voteDropdown">
                             <option value="">Select Vote Option</option>
@@ -355,7 +354,7 @@
                             <option value="Cause">Ineligible for Cause</option>
                         </select>
                         <button id="manualEntryButton" onclick="manualEntry()">Manual Entry</button>
-                    </div>
+                    </div> -->
                 </div>
                 <h3 id="voteTitle">Results of Vote</h1>
                 <div class="vote-count">
@@ -380,6 +379,13 @@
                     <h2>Log of Votes</h2>
                     <ul id="voteLog" class="wide-list">
                         <!-- Vote log will be populated using JavaScript -->
+                    </ul>
+                </div>
+                     <!-- New section for non-voters -->
+                <div class="non-voters-section" style="margin-top: 20px;">
+                    <h3>Not Yet Voted:</h3>
+                    <ul id="nonVotersList" class="wide-list">
+                        <!-- Non-voters will be populated here -->
                     </ul>
                 </div>
                 <p class="seconds-since-update">Seconds since update: <span id="secondsSinceUpdate">0</span></p>
@@ -477,8 +483,8 @@
         let timerInterval
         let lastFetchTime = Date.now();
         let currentVoteName = ''
-        //let server_url = 'http://127.0.0.1:5000'
-        let server_url = 'https://jrkve800qh.execute-api.us-east-1.amazonaws.com/default' 
+        let server_url = 'http://127.0.0.1:5000'
+        //let server_url = 'https://jrkve800qh.execute-api.us-east-1.amazonaws.com/default' 
         let auth_key = null
         let communityBoard = '';
         let currentVoteData = { voteType: "RESOLUTION", electionCandidates: [] }; // Global state for vote type and candidates
@@ -578,9 +584,9 @@
                     refreshVotingVisibility(); // This will now use currentVoteData
 
                     // TODO: Replace this hardcoded names list with a fetch from /members endpoint if needed for nameDropdown
-                    names = [{'name':'Blanche','number':'+1'},{'name':'Page','number':'+19174056332'},{'name':'Rhonda','number':'+13474765085'},{'name':'George','number':'+13476819729'},{'name':'Peter','number':'+19175438922'}]
-                    updateNameDropdown(names);
-                    updateManualVoteOptions(); // Update vote options based on fetched vote type
+                    // names = [{'name':'Blanche','number':'+1'},{'name':'Page','number':'+19174056332'},{'name':'Rhonda','number':'+13474765085'},{'name':'George','number':'+13476819729'},{'name':'Peter','number':'+19175438922'}]
+                    // updateNameDropdown(names);
+                    // //updateManualVoteOptions(); // Update vote options based on fetched vote type
                 })
                 .catch(error => {
                     console.error("Error checking voting status:", error);
@@ -699,6 +705,21 @@
             // Clear previous results
             voteCountDiv.innerHTML = '';
             voteLogUl.innerHTML = '';
+
+            const nonVotersListUl = document.getElementById("nonVotersList");
+            nonVotersListUl.innerHTML = ''; // Clear previous non-voter list
+
+            if (returned_value.not_voted && returned_value.not_voted.length > 0) {
+                returned_value.not_voted.forEach(name => {
+                    const li = document.createElement("li");
+                    li.textContent = name;
+                    nonVotersListUl.appendChild(li);
+                });
+            } else if (returned_value.hasOwnProperty('not_voted')) { // Check if not_voted key exists
+                const li = document.createElement("li");
+                li.textContent = "All eligible members have voted.";
+                nonVotersListUl.appendChild(li);
+            }
 
             if (currentVoteData.voteType === "ELECTION") {
                 if (currentVoteData.electionCandidates && currentVoteData.electionCandidates.length > 0) {
@@ -829,7 +850,7 @@
 
                         // Refresh UI elements based on the new vote type
                         refreshVotingVisibility(); // This should now use the updated currentVoteData
-                        updateManualVoteOptions(); // Update dropdown for manual entry
+                        //updateManualVoteOptions(); // Update dropdown for manual entry
 
                     } else {
                         // Use error message from server response if available
@@ -856,7 +877,9 @@
                 if (response.status === 200) {
                     // If the response status is 200, the voting started successfully
                     stopFetchResults()
-                    zeroResults()
+                    if (currentVoteData.voteType != "ELECTION") {
+                        zeroResults()
+                    }
                     currentVoteName = ''
                     document.getElementById("votingControls").style.display = "block";
                     document.getElementById("stopButton").style.display = "none";
@@ -893,7 +916,7 @@
                 document.getElementById("left-section").style.width = '45%'; // Consider '100%' or adjust as per new layout needs
 
                 // Ensure manual vote options are correct for the current vote type
-                updateManualVoteOptions();
+                //updateManualVoteOptions();
                 fetchResults(); // Explicitly call to refresh results display based on new currentVoteData
 
             } else {
@@ -902,7 +925,7 @@
                 document.getElementById("right-section").style.display = "block";
                 document.getElementById("left-section").style.width = '90%'; // Reset width
                 currentVoteData = { voteType: "RESOLUTION", electionCandidates: [] }; // Reset on stop/initial
-                updateManualVoteOptions(); // Reset manual vote options to default (Resolution)
+                //updateManualVoteOptions(); // Reset manual vote options to default (Resolution)
             }
         }
 
@@ -975,20 +998,20 @@
 
         // Add event listeners to update the name dropdown (call this function to populate the names)
         function updateNameDropdown(names) {
-            populateNameDropdown(names);
+            //populateNameDropdown(names);
         }
 
-        // Call this function to populate the name dropdown (modify as needed)
-        function populateNameDropdown(names) {
-            const nameDropdown = document.getElementById("nameDropdown");
-            nameDropdown.innerHTML = '<option value="">Select Name</option>';
-            names.forEach((name) => {
-                const option = document.createElement("option");
-                option.value = name['number'];
-                option.text = name['name'];
-                nameDropdown.appendChild(option);
-            });
-        }
+        // // Call this function to populate the name dropdown (modify as needed)
+        // function populateNameDropdown(names) {
+        //     const nameDropdown = document.getElementById("nameDropdown");
+        //     nameDropdown.innerHTML = '<option value="">Select Name</option>';
+        //     names.forEach((name) => {
+        //         const option = document.createElement("option");
+        //         option.value = name['number'];
+        //         option.text = name['name'];
+        //         nameDropdown.appendChild(option);
+        //     });
+        // }
 
         function exportVotes() {
             const exportModal = document.getElementById('exportModal');
@@ -1134,10 +1157,10 @@
                     alert('Members updated successfully');
                     closeEditMembersModal();
                     // Refresh the name dropdown
-                    updateNameDropdown(Object.entries(members).map(([number, data]) => ({
-                        name: data.name,
-                        number: number
-                    })));
+                    // updateNameDropdown(Object.entries(members).map(([number, data]) => ({
+                    //     name: data.name,
+                    //     number: number
+                    // })));
                 } else {
                     throw new Error('Failed to update members');
                 }
